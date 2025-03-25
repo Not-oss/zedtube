@@ -24,87 +24,93 @@
             <span id="progressStatus">En attente...</span>
             <span id="progressPercentage">0%</span>
         </div>
-        <div id="processingStatus" class="mt-4 text-center hidden">
-            <p class="text-gray-600 dark:text-gray-300">Conversion en cours...</p>
-            <div class="flex justify-center items-center mt-2">
+        
+        <div id="processingInfo" class="mt-4 text-center hidden">
+            <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 class="text-lg font-semibold mb-2 dark:text-white">Détails de traitement</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">Taille du fichier</p>
+                        <p id="file-size" class="font-bold dark:text-white">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">Temps estimé</p>
+                        <p id="estimated-time" class="font-bold dark:text-white">-</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="processingStatus" class="mt-4 flex items-center justify-center space-x-4">
                 <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-600"></div>
+                <p class="text-gray-600 dark:text-gray-300">Conversion en cours...</p>
             </div>
         </div>
-    </div>
-
-    <div id="processing-estimate" style="display:none;">
-        <p>Taille du fichier : <span id="file-size"></span> MB</p>
-        <p>Temps estimé de traitement : <span id="estimated-time"></span></p>
     </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const uploadForm = document.getElementById('uploadForm');
-        const uploadProgress = document.getElementById('uploadProgress');
-        const progressBar = document.getElementById('progressBar');
-        const progressStatus = document.getElementById('progressStatus');
-        const progressPercentage = document.getElementById('progressPercentage');
-        const processingStatus = document.getElementById('processingStatus');
-        const videoFile = document.getElementById('videoFile');
-        const processingEstimate = document.getElementById('processing-estimate');
-        const fileSizeSpan = document.getElementById('file-size');
-        const estimatedTimeSpan = document.getElementById('estimated-time');
+document.addEventListener('DOMContentLoaded', () => {
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressStatus = document.getElementById('progressStatus');
+    const progressPercentage = document.getElementById('progressPercentage');
+    const processingInfo = document.getElementById('processingInfo');
+    const processingStatus = document.getElementById('processingStatus');
+    const videoFile = document.getElementById('videoFile');
+    const fileSizeSpan = document.getElementById('file-size');
+    const estimatedTimeSpan = document.getElementById('estimated-time');
 
-        function startUpload() {
-            const file = videoFile.files[0];
-            const title = document.getElementById('videoTitle').value;
-            
-            if (!file) {
-                alert('Veuillez sélectionner un fichier');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('video', file);
-            formData.append('title', title);  // Ajouter le titre
-
-            // Reste du code d'upload inchangé
-            uploadForm.classList.add('hidden');
-            uploadProgress.classList.remove('hidden');
-
-            const xhr = new XMLHttpRequest();
-            xhr.upload.onprogress = (event) => {
-                if (event.lengthComputable) {
-                    const percentComplete = Math.round((event.loaded / event.total) * 100);
-                    progressBar.style.width = `${percentComplete}%`;
-                    progressPercentage.textContent = `${percentComplete}%`;
-                    progressStatus.textContent = `Uploading... ${percentComplete}%`;
-                }
-            };
-
-            xhr.onload = () => {
-                if (xhr.status === 200) {
-                    progressStatus.textContent = 'Upload terminé';
-                    progressPercentage.textContent = '100%';
-                    progressBar.style.width = '100%';
-                    
-                    // Afficher le statut de traitement
-                    setTimeout(() => {
-                        processingStatus.classList.remove('hidden');
-                    }, 1000);
-
-                    // Display processing estimate information
-                    const data = JSON.parse(xhr.responseText);
-                    processingEstimate.style.display = 'block';
-                    fileSizeSpan.textContent = (data.file_size / 1024 / 1024).toFixed(2);  // Convert bytes to MB
-                    estimatedTimeSpan.textContent = data.estimated_time;
-                } else {
-                    alert('Erreur lors de l\'upload');
-                }
-            };
-
-            xhr.open('POST', '/upload', true);
-            xhr.send(formData);
+    function startUpload() {
+        const file = videoFile.files[0];
+        const title = document.getElementById('videoTitle').value;
+        
+        if (!file) {
+            alert('Veuillez sélectionner un fichier');
+            return;
         }
 
-        window.startUpload = startUpload;
-    });
+        const formData = new FormData();
+        formData.append('video', file);
+        formData.append('title', title);
+
+        uploadForm.classList.add('hidden');
+        uploadProgress.classList.remove('hidden');
+        progressBar.style.width = '0%';
+        progressPercentage.textContent = '0%';
+        progressStatus.textContent = 'Préparation de l\'upload...';
+
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+                const percentComplete = Math.round((event.loaded / event.total) * 100);
+                progressBar.style.width = `${percentComplete}%`;
+                progressPercentage.textContent = `${percentComplete}%`;
+                progressStatus.textContent = `Upload en cours... ${percentComplete}%`;
+            }
+        };
+
+        xhr.onload = () => {
+            if (xhr.status === 200) {
+                progressStatus.textContent = 'Upload terminé';
+                progressPercentage.textContent = '100%';
+                progressBar.style.width = '100%';
+                
+                // Afficher les informations de traitement
+                const data = JSON.parse(xhr.responseText);
+                processingInfo.classList.remove('hidden');
+                fileSizeSpan.textContent = `${data.file_size} Mo`;
+                estimatedTimeSpan.textContent = data.estimated_time;
+            } else {
+                alert('Erreur lors de l\'upload');
+            }
+        };
+
+        xhr.open('POST', '/upload', true);
+        xhr.send(formData);
+    }
+
+    window.startUpload = startUpload;
+});
 </script>
 {% endblock %}
-

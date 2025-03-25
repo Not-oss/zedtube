@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, abort, flash
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, abort, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.utils import secure_filename
 from models import db, User, Video

@@ -1,21 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-    {% for video in videos %}
-    <div class="bg-white dark:bg-gray-800 p-4 rounded shadow">
-        {% if video.title %}
-            <h3 class="text-lg font-semibold mb-2 dark:text-white">{{ video.title }}</h3>
-        {% endif %}
-        <video controls class="w-full">
-            <source src="{{ url_for('serve_video', filename=video.filename) }}" type="video/mp4">
-        </video>
-        <div class="mt-2 flex justify-between items-center">
-            <button onclick="copyFullShareLink({{ video.id }})" class="bg-blue-500 dark:bg-blue-700 text-white px-2 py-1 rounded">
-                Copier le lien
-            </button>
+<div class="container mx-auto px-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for video in videos %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl">
+            <div class="relative">
+                <video controls class="w-full h-48 object-cover">
+                    <source src="{{ url_for('serve_video', filename=video.filename) }}" type="video/mp4">
+                    Votre navigateur ne supporte pas la vidéo.
+                </video>
+            </div>
+            
+            <div class="p-4">
+                {% if video.title %}
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white truncate">{{ video.title }}</h3>
+                {% endif %}
+                
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">
+                        {{ video.upload_date.strftime('%d/%m/%Y') }}
+                    </span>
+                    
+                    <button 
+                        onclick="copyFullShareLink({{ video.id }})" 
+                        class="bg-blue-500 dark:bg-blue-700 text-white px-3 py-1 rounded-full text-sm hover:bg-blue-600 transition-colors"
+                    >
+                        Partager
+                    </button>
+                </div>
+            </div>
         </div>
+        {% endfor %}
     </div>
-    {% endfor %}
+
+    {% if not videos %}
+    <div class="text-center py-12 bg-gray-100 dark:bg-gray-900 rounded-lg">
+        <h2 class="text-2xl text-gray-600 dark:text-gray-400">Aucune vidéo disponible</h2>
+        <p class="text-gray-500 dark:text-gray-500 mt-2">Les vidéos que vous uploadez apparaîtront ici</p>
+    </div>
+    {% endif %}
 </div>
 
 <script>
@@ -28,5 +51,32 @@ function copyFullShareLink(videoId) {
             });
         });
 }
+
+// Dark mode persistent toggle
+document.addEventListener('DOMContentLoaded', () => {
+    const htmlElement = document.documentElement;
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+
+    function applyDarkMode(isDark) {
+        if (isDark) {
+            htmlElement.classList.add('dark');
+        } else {
+            htmlElement.classList.remove('dark');
+        }
+    }
+
+    // Initial dark mode setup
+    applyDarkMode(savedDarkMode);
+
+    // Toggle dark mode
+    if (darkModeToggle) {
+        darkModeToggle.addEventListener('click', () => {
+            const isDark = !htmlElement.classList.contains('dark');
+            applyDarkMode(isDark);
+            localStorage.setItem('darkMode', isDark);
+        });
+    }
+});
 </script>
 {% endblock %}
