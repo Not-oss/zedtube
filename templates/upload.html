@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
+    <h2 class="text-2xl mb-6 text-center dark:text-white">Uploader une vidéo</h2>
+    
+    <div id="uploadForm" class="space-y-4">
+        <input type="text" id="videoTitle" name="title" placeholder="Titre de la vidéo" 
+               class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        
+        <input type="file" id="videoFile" name="video" accept="video/*" 
+               class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+        
+        <button onclick="startUpload()" 
+                class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-700">
+            Commencer l'upload
+        </button>
+    </div>
+
+    <div id="uploadProgress" class="hidden mt-6">
+        <div class="bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
+            <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+        </div>
+        <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+            <span id="progressStatus">En attente...</span>
+            <span id="progressPercentage">0%</span>
+        </div>
+        <div id="processingStatus" class="mt-4 text-center hidden">
+            <p class="text-gray-600 dark:text-gray-300">Conversion en cours...</p>
+            <div class="flex justify-center items-center mt-2">
+                <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-600"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="processing-estimate" style="display:none;">
+        <p>Taille du fichier : <span id="file-size"></span> MB</p>
+        <p>Temps estimé de traitement : <span id="estimated-time"></span></p>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressBar = document.getElementById('progressBar');
+        const progressStatus = document.getElementById('progressStatus');
+        const progressPercentage = document.getElementById('progressPercentage');
+        const processingStatus = document.getElementById('processingStatus');
+        const videoFile = document.getElementById('videoFile');
+        const processingEstimate = document.getElementById('processing-estimate');
+        const fileSizeSpan = document.getElementById('file-size');
+        const estimatedTimeSpan = document.getElementById('estimated-time');
+
+        function startUpload() {
+            const file = videoFile.files[0];
+            const title = document.getElementById('videoTitle').value;
+            
+            if (!file) {
+                alert('Veuillez sélectionner un fichier');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('video', file);
+            formData.append('title', title);  // Ajouter le titre
+
+            // Reste du code d'upload inchangé
+            uploadForm.classList.add('hidden');
+            uploadProgress.classList.remove('hidden');
+
+            const xhr = new XMLHttpRequest();
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percentComplete = Math.round((event.loaded / event.total) * 100);
+                    progressBar.style.width = `${percentComplete}%`;
+                    progressPercentage.textContent = `${percentComplete}%`;
+                    progressStatus.textContent = `Uploading... ${percentComplete}%`;
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    progressStatus.textContent = 'Upload terminé';
+                    progressPercentage.textContent = '100%';
+                    progressBar.style.width = '100%';
+                    
+                    // Afficher le statut de traitement
+                    setTimeout(() => {
+                        processingStatus.classList.remove('hidden');
+                    }, 1000);
+
+                    // Display processing estimate information
+                    const data = JSON.parse(xhr.responseText);
+                    processingEstimate.style.display = 'block';
+                    fileSizeSpan.textContent = (data.file_size / 1024 / 1024).toFixed(2);  // Convert bytes to MB
+                    estimatedTimeSpan.textContent = data.estimated_time;
+                } else {
+                    alert('Erreur lors de l\'upload');
+                }
+            };
+
+            xhr.open('POST', '/upload', true);
+            xhr.send(formData);
+        }
+
+        window.startUpload = startUpload;
+    });
+</script>
+{% endblock %}
+

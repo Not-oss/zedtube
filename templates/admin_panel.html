@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mx-auto px-4">
+    <h1 class="text-3xl font-bold mb-6 dark:text-white">Panel Administrateur</h1>
+
+    <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg">
+        <div class="p-6">
+            <h2 class="text-2xl font-semibold mb-4 dark:text-white">Vidéos</h2>
+            <table class="w-full text-sm text-left dark:text-gray-300">
+                <thead class="bg-gray-100 dark:bg-gray-700">
+                    <tr>
+                        <th class="p-3">ID</th>
+                        <th class="p-3">Titre</th>
+                        <th class="p-3">Nom de fichier</th>
+                        <th class="p-3">Date d'upload</th>
+                        <th class="p-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for video in videos %}
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="p-3">{{ video.id }}</td>
+                        <td class="p-3">{{ video.title or 'Sans titre' }}</td>
+                        <td class="p-3">{{ video.filename }}</td>
+                        <td class="p-3">{{ video.upload_date.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td class="p-3">
+                            <form action="{{ url_for('delete_video', video_id=video.id) }}" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette vidéo ?');">
+                                <button type="submit" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">
+                                    Supprimer
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg mt-6">
+        <div class="p-6">
+            <h2 class="text-2xl font-semibold mb-4 dark:text-white">Utilisateurs</h2>
+            <table class="w-full text-sm text-left dark:text-gray-300">
+                <thead class="bg-gray-100 dark:bg-gray-700">
+                    <tr>
+                        <th class="p-3">ID</th>
+                        <th class="p-3">Nom d'utilisateur</th>
+                        <th class="p-3">Peut uploader</th>
+                        <th class="p-3">Admin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="p-3">{{ user.id }}</td>
+                        <td class="p-3">{{ user.username }}</td>
+                        <td class="p-3">
+                            {% if user.can_upload %}
+                                <span class="text-green-500">Oui</span>
+                            {% else %}
+                                <span class="text-red-500">Non</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3">
+                            {% if user.is_admin %}
+                                <span class="text-green-500">Oui</span>
+                            {% else %}
+                                <span class="text-red-500">Non</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

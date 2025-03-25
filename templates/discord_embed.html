@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html prefix="og: https://ogp.me/ns#">
+<head>
+    <title>Vidéo ZedTube</title>
+    <meta property="og:title" content="Vidéo ZedTube" />
+    <meta property="og:type" content="video.other" />
+    <meta property="og:video:url" content="{{ request.host_url }}{{ url_for('serve_video', filename=video.filename)[1:] }}" />
+    <meta property="og:video:secure_url" content="{{ request.host_url }}{{ url_for('serve_video', filename=video.filename)[1:] }}" />
+    <meta property="og:video:type" content="video/mp4" />
+    <meta property="og:image" content="{{ request.host_url }}{{ url_for('serve_thumbnail', filename=video.filename)[1:] }}" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta name="twitter:card" content="player">
+    <meta name="twitter:player" content="{{ request.host_url }}{{ url_for('serve_video', filename=video.filename)[1:] }}">
+</head>
+<body>
+    <h1>Vidéo ZedTube</h1>
+    <video controls>
+        <source src="{{ url_for('serve_video', filename=video.filename) }}" type="video/mp4">
+    </video>
+</body>
+</html>

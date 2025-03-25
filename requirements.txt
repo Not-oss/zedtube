@@ -1,0 +1,9 @@
+flask
+flask-sqlalchemy
+flask-login
+flask-wtf
+ffmpeg-python
+werkzeug
+python-dotenv
+celery
+redis
