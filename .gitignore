@@ -2,4 +2,6 @@
 static/uploads/*
 *.mp4
 static/uploads/
+venv/
+__pycache__/
 
