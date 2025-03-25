@@ -144,33 +144,54 @@ def upload_video():
         if video:
             filename = secure_filename(video.filename)
             original_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            video.save(original_path)
             
-            # If no title is provided, use the original filename (without extension) as the title
-            if not title:
-                title = os.path.splitext(filename)[0]
-            
-            # Traitement de la vidéo
-            processed_result = process_video(original_path, app.config['UPLOAD_FOLDER'])
-            
-            if processed_result:
-                new_video = Video(
-                    filename=os.path.basename(processed_result['video_path']),
-                    original_filename=filename,
-                    title=title,
-                    user_id=current_user.id
-                )
-                db.session.add(new_video)
-                db.session.commit()
+            try:
+                # Sauvegarder le fichier original
+                video.save(original_path)
                 
-                # Return processing estimation details
-                return jsonify({
-                    'message': 'Upload en cours de traitement',
-                    'file_size': processed_result['processing_estimate']['file_size_mb'],
-                    'estimated_time': processed_result['processing_estimate']['estimated_human_readable']
-                }), 200
+                # Log du fichier uploadé
+                print(f"Debug - File saved: {original_path}")
+                print(f"File size: {os.path.getsize(original_path) / (1024 * 1024):.2f} MB")
+                
+                # If no title is provided, use the original filename (without extension) as the title
+                if not title:
+                    title = os.path.splitext(filename)[0]
+                
+                # Traitement de la vidéo
+                processed_result = process_video(original_path, app.config['UPLOAD_FOLDER'])
+                
+                if processed_result:
+                    new_video = Video(
+                        filename=os.path.basename(processed_result['video_path']),
+                        original_filename=filename,
+                        title=title,
+                        user_id=current_user.id
+                    )
+                    db.session.add(new_video)
+                    db.session.commit()
+                    
+                    # Log du résultat de traitement
+                    print("Debug - Video processing successful")
+                    print(f"Debug - Processed video path: {processed_result['video_path']}")
+                    
+                    # Return processing estimation details
+                    return jsonify({
+                        'message': 'Upload en cours de traitement',
+                        'file_size': processed_result['processing_estimate']['file_size_mb'],
+                        'estimated_time': processed_result['processing_estimate']['estimated_human_readable']
+                    }), 200
+                else:
+                    # Log de l'échec de traitement
+                    print("Debug - Video processing failed")
+                    return "Erreur de traitement vidéo", 500
             
-        return "Erreur d'upload", 400
+            except Exception as e:
+                # Log de l'erreur complète
+                print(f"Debug - Upload error: {e}")
+                traceback.print_exc()
+                return f"Erreur d'upload: {str(e)}", 500
+        
+        return "Aucun fichier uploadé", 400
     
     return render_template('upload.html')
 @app.route('/video/<filename>')

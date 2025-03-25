@@ -45,6 +45,13 @@
                 <p class="text-gray-600 dark:text-gray-300">Conversion en cours...</p>
             </div>
         </div>
+        
+        <div id="errorMessage" class="mt-4 text-center hidden">
+            <div class="bg-red-100 dark:bg-red-900 p-4 rounded-lg">
+                <h3 class="text-lg font-semibold mb-2 text-red-700 dark:text-red-300">Erreur d'upload</h3>
+                <p id="errorText" class="text-red-600 dark:text-red-400">Une erreur est survenue lors de l'upload.</p>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -57,9 +64,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressPercentage = document.getElementById('progressPercentage');
     const processingInfo = document.getElementById('processingInfo');
     const processingStatus = document.getElementById('processingStatus');
+    const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
     const videoFile = document.getElementById('videoFile');
     const fileSizeSpan = document.getElementById('file-size');
     const estimatedTimeSpan = document.getElementById('estimated-time');
+
+    function resetUploadState() {
+        uploadForm.classList.remove('hidden');
+        uploadProgress.classList.add('hidden');
+        processingInfo.classList.add('hidden');
+        errorMessage.classList.add('hidden');
+        progressBar.style.width = '0%';
+        progressPercentage.textContent = '0%';
+        progressStatus.textContent = 'En attente...';
+    }
 
     function startUpload() {
         const file = videoFile.files[0];
@@ -67,6 +86,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!file) {
             alert('Veuillez sélectionner un fichier');
+            return;
+        }
+
+        // Vérification de la taille du fichier (limite à 1 Go)
+        const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1 Go
+        if (file.size > MAX_FILE_SIZE) {
+            alert('Le fichier est trop volumineux. Limite : 1 Go');
             return;
         }
 
@@ -96,14 +122,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 progressPercentage.textContent = '100%';
                 progressBar.style.width = '100%';
                 
-                // Afficher les informations de traitement
-                const data = JSON.parse(xhr.responseText);
-                processingInfo.classList.remove('hidden');
-                fileSizeSpan.textContent = `${data.file_size} Mo`;
-                estimatedTimeSpan.textContent = data.estimated_time;
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    processingInfo.classList.remove('hidden');
+                    fileSizeSpan.textContent = `${data.file_size || 0} Mo`;
+                    estimatedTimeSpan.textContent = data.estimated_time || '30 secondes';
+                } catch (e) {
+                    console.error('Erreur lors du parsing de la réponse', e);
+                    errorText.textContent = 'Erreur lors du traitement de la réponse';
+                    errorMessage.classList.remove('hidden');
+                }
             } else {
-                alert('Erreur lors de l\'upload');
+                errorText.textContent = xhr.responseText || 'Erreur lors de l\'upload';
+                errorMessage.classList.remove('hidden');
             }
+        };
+
+        xhr.onerror = () => {
+            errorText.textContent = 'Erreur de réseau lors de l\'upload';
+            errorMessage.classList.remove('hidden');
         };
 
         xhr.open('POST', '/upload', true);
