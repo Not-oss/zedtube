@@ -70,9 +70,10 @@ def process_video(input_path, output_dir):
             ffmpeg.run(stream, overwrite_output=True)
         except ffmpeg.Error as e:
             print("Erreur FFmpeg lors de la conversion :")
-            print(f"Stderr: {e.stderr.decode() if e.stderr else 'Pas de message d\'erreur')")
+            #print(f"Stderr: {e.stderr.decode() if e.stderr else 'Pas de message d\'erreur'}")
 
-#	     print(f"Stderr: {e.stderr.decode() if e.stderr else 'Pas de message d\'erreur'}")
+
+
 
             return None
 
