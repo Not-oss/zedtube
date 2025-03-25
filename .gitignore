@@ -1,0 +1,5 @@
+*.zip
+static/uploads/*
+*.mp4
+static/uploads/
+
