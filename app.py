@@ -147,7 +147,69 @@ def register():
     
     return render_template('register.html')
 
+# Route pour demander les droits d'upload
+@app.route('/request_upload', methods=['POST'])
+@login_required
+def request_upload():
+    current_user.upload_requested = True
+    db.session.commit()
+    flash('Your upload request has been submitted to admin', 'info')
+    return redirect(url_for('profile'))
 
+# Route admin pour gérer les demandes
+@app.route('/admin/requests')
+@login_required
+@admin_required  # À créer ou remplacer par une vérification is_admin
+def manage_requests():
+    pending_users = User.query.filter_by(upload_requested=True, can_upload=False).all()
+    return render_template('admin_requests.html', users=pending_users)
+
+# Accepter/refuser une demande
+@app.route('/admin/request_action/<int:user_id>/<action>')
+@login_required
+@admin_required
+def request_action(user_id, action):
+    user = User.query.get_or_404(user_id)
+    if action == 'approve':
+        user.can_upload = True
+        flash(f'Upload rights granted to {user.username}', 'success')
+    user.upload_requested = False
+    db.session.commit()
+    return redirect(url_for('manage_requests'))
+
+# Gestion des dossiers
+@app.route('/admin/folders')
+@login_required
+@admin_required
+def manage_folders():
+    folders = Folder.query.all()
+    return render_template('admin_folders.html', folders=folders)
+
+@app.route('/admin/create_folder', methods=['POST'])
+@login_required
+@admin_required
+def create_folder():
+    name = request.form.get('name')
+    if not name:
+        flash('Folder name is required', 'error')
+        return redirect(url_for('manage_folders'))
+    
+    new_folder = Folder(name=name)
+    db.session.add(new_folder)
+    db.session.commit()
+    flash(f'Folder "{name}" created', 'success')
+    return redirect(url_for('manage_folders'))
+
+@app.route('/admin/move_video/<int:video_id>', methods=['POST'])
+@login_required
+@admin_required
+def move_video(video_id):
+    video = Video.query.get_or_404(video_id)
+    folder_id = request.form.get('folder_id')
+    video.folder_id = folder_id if folder_id else None
+    db.session.commit()
+    flash('Video moved successfully', 'success')
+    return redirect(request.referrer or url_for('home'))
 
 @app.route('/create_admin')
 def create_admin():

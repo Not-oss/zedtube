@@ -28,6 +28,18 @@
             </label>
         </div>
         
+        {% if current_user.is_admin %}
+        <div class="space-y-2">
+            <label class="block text-sm font-medium dark:text-white">Folder</label>
+            <select name="folder_id" class="w-full p-2 bg-[#2C2C2C] border border-[#3C3C3C] rounded text-white">
+                <option value="">Main Library</option>
+                {% for folder in folders %}
+                <option value="{{ folder.id }}">{{ folder.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        
         <button type="button" onclick="startUpload()" 
                 class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-700">
             Commencer l'upload
@@ -39,10 +51,6 @@
             <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
         </div>
         <p id="progressStatus" class="text-sm dark:text-white">Préparation de l'upload...</p>
-        <div id="processingInfo" class="hidden text-sm dark:text-gray-300">
-            <p>Taille du fichier: <span id="fileSize">0</span> MB</p>
-            <p>Temps estimé: <span id="estimatedTime">0</span></p>
-        </div>
     </div>
 
     <div id="uploadResult" class="hidden mt-6 p-4 rounded-lg bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
@@ -86,10 +94,8 @@ function startUpload() {
     })
     .then(data => {
         document.getElementById('uploadProgress').classList.add('hidden');
-        const resultDiv = document.getElementById('uploadResult');
-        document.getElementById('successMessage').textContent = 
-            `Vidéo "${data.title}" uploadée (${data.file_size} MB)`;
-        resultDiv.classList.remove('hidden');
+        document.getElementById('uploadResult').classList.remove('hidden');
+        document.getElementById('successMessage').textContent = `Vidéo "${data.title}" uploadée (${data.file_size} MB)`;
         
         let seconds = 5;
         const countdown = setInterval(() => {

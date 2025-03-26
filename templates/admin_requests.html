@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mx-auto py-8">
+    <h2 class="text-2xl font-bold mb-6 text-white">Upload Requests</h2>
+    
+    <div class="bg-[#1E1E1E] rounded-lg overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-[#2C2C2C]">
+                <tr>
+                    <th class="p-3 text-left">Username</th>
+                    <th class="p-3 text-left">Request Date</th>
+                    <th class="p-3 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr class="border-b border-[#2C2C2C]">
+                    <td class="p-3">{{ user.username }}</td>
+                    <td class="p-3">{{ user.upload_requested_date }}</td>
+                    <td class="p-3 text-right space-x-2">
+                        <a href="{{ url_for('request_action', user_id=user.id, action='approve') }}"
+                           class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
+                            Approve
+                        </a>
+                        <a href="{{ url_for('request_action', user_id=user.id, action='reject') }}"
+                           class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">
+                            Reject
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="p-4 text-center text-gray-400">No pending requests</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

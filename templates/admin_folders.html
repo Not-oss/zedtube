@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mx-auto py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-white">Folders Management</h2>
+        <button onclick="document.getElementById('createFolderModal').classList.remove('hidden')"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+            Create Folder
+        </button>
+    </div>
+
+    <!-- Modal de création -->
+    <div id="createFolderModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+        <div class="bg-[#1E1E1E] rounded-lg p-6 max-w-md w-full">
+            <h3 class="text-xl font-bold mb-4">Create New Folder</h3>
+            <form method="POST" action="{{ url_for('create_folder') }}">
+                <input type="text" name="name" placeholder="Folder name" required
+                       class="w-full p-2 bg-[#2C2C2C] border border-[#3C3C3C] rounded mb-4 text-white">
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="document.getElementById('createFolderModal').classList.add('hidden')"
+                            class="px-4 py-2 rounded border border-gray-600">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                        Create
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Liste des dossiers -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for folder in folders %}
+        <div class="bg-[#1E1E1E] rounded-lg p-4">
+            <h3 class="text-lg font-semibold mb-2">{{ folder.name }}</h3>
+            <p class="text-sm text-gray-400 mb-3">{{ folder.videos|length }} videos</p>
+            <a href="{{ url_for('folder_videos', folder_id=folder.id) }}"
+               class="text-blue-500 hover:underline text-sm">
+                View Videos
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+// Fermer le modal si on clique à l'extérieur
+window.onclick = function(event) {
+    if (event.target == document.getElementById('createFolderModal')) {
+        document.getElementById('createFolderModal').classList.add('hidden');
+    }
+}
+</script>
+{% endblock %}
