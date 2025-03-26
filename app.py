@@ -140,6 +140,7 @@ def upload_video():
     if request.method == 'POST':
         video = request.files['video']
         title = request.form.get('title', '').strip()  # Get title, remove whitespace
+        convert = request.form.get('convert', 'true') == 'true'  # Default to true
         
         if video:
             filename = secure_filename(video.filename)
@@ -152,20 +153,22 @@ def upload_video():
                 # Log du fichier uploadé
                 print(f"Debug - File saved: {original_path}")
                 print(f"File size: {os.path.getsize(original_path) / (1024 * 1024):.2f} MB")
+                print(f"Conversion flag: {convert}")
                 
                 # If no title is provided, use the original filename (without extension) as the title
                 if not title:
                     title = os.path.splitext(filename)[0]
                 
                 # Traitement de la vidéo
-                processed_result = process_video(original_path, app.config['UPLOAD_FOLDER'])
+                processed_result = process_video(original_path, app.config['UPLOAD_FOLDER'], convert)
                 
                 if processed_result:
                     new_video = Video(
                         filename=os.path.basename(processed_result['video_path']),
                         original_filename=filename,
                         title=title,
-                        user_id=current_user.id
+                        user_id=current_user.id,
+                        is_converted=convert
                     )
                     db.session.add(new_video)
                     db.session.commit()
@@ -178,7 +181,8 @@ def upload_video():
                     return jsonify({
                         'message': 'Upload en cours de traitement',
                         'file_size': processed_result['processing_estimate']['file_size_mb'],
-                        'estimated_time': processed_result['processing_estimate']['estimated_human_readable']
+                        'estimated_time': processed_result['processing_estimate']['estimated_human_readable'],
+                        'converted': convert
                     }), 200
                 else:
                     # Log de l'échec de traitement
@@ -194,6 +198,7 @@ def upload_video():
         return "Aucun fichier uploadé", 400
     
     return render_template('upload.html')
+
 @app.route('/video/<filename>')
 def serve_video(filename):
     video = Video.query.filter_by(filename=filename).first()
@@ -202,24 +207,28 @@ def serve_video(filename):
     
     user_agent = request.headers.get('User-Agent', '').lower()
     
-    # Détection Discord améliorée
+    # Improved Discord bot detection
     if any(bot in user_agent for bot in ['discordbot', 'discord', 'telegrambot']):
         thumbnail_url = request.host_url.rstrip('/') + url_for('serve_thumbnail', filename=filename)
-        video_url = request.host_url.rstrip('/') + url_for('serve_video', filename=filename)
+        video_url = request.host_url.rstrip('/') + url_for('serve_video', filename=filename)[1:]
         
         return f'''
         <!DOCTYPE html>
-        <html>
+        <html prefix="og: https://ogp.me/ns#">
         <head>
             <title>ZedTube Vidéo</title>
-            <meta property="og:title" content="Vidéo ZedTube" />
+            <meta property="og:title" content="{video.title or 'Vidéo ZedTube'}" />
             <meta property="og:type" content="video.other" />
             <meta property="og:video" content="{video_url}" />
             <meta property="og:video:type" content="video/mp4" />
+            <meta property="og:video:width" content="640" />
+            <meta property="og:video:height" content="360" />
             <meta property="og:image" content="{thumbnail_url}" />
             <meta property="og:image:type" content="image/jpeg" />
             <meta name="twitter:card" content="player" />
             <meta name="twitter:player" content="{video_url}" />
+            <meta name="twitter:player:width" content="640" />
+            <meta name="twitter:player:height" content="360" />
             <meta name="twitter:image" content="{thumbnail_url}" />
         </head>
         <body>
@@ -232,7 +241,6 @@ def serve_video(filename):
         '''
     
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
 @app.route('/thumbnail/<filename>')
 def serve_thumbnail(filename):
     base_filename = os.path.splitext(filename)[0]

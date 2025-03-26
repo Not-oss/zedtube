@@ -4,6 +4,7 @@ import ffmpeg
 from PIL import Image
 import math
 import traceback
+import shutil
 
 def estimate_processing_time(input_path):
     """
@@ -45,7 +46,7 @@ def estimate_processing_time(input_path):
             'estimated_human_readable': '30 secondes'
         }
 
-def process_video(input_path, output_dir):
+def process_video(input_path, output_dir, convert=True):
     try:
         # Vérification explicite de l'existence du fichier
         if not os.path.exists(input_path):
@@ -54,37 +55,40 @@ def process_video(input_path, output_dir):
 
         # Génération de noms de fichiers uniques
         filename = str(uuid.uuid4())
-        output_path = os.path.join(output_dir, f"{filename}.mp4")
-        thumbnail_path = os.path.join(output_dir, f"{filename}_thumb.jpg")
         
         # Estimation avant le traitement
         processing_estimate = estimate_processing_time(input_path)
         print("Détails d'estimation de traitement :", processing_estimate)
         
-        # Conversion vidéo avec gestion des erreurs
+        # Determine output path based on conversion flag
+        if convert:
+            output_path = os.path.join(output_dir, f"{filename}.mp4")
+            try:
+                # Conversion vidéo avec gestion des erreurs
+                stream = ffmpeg.input(input_path)
+                stream = ffmpeg.output(stream, output_path, 
+                                       vcodec='libx264', 
+                                       acodec='aac')
+                ffmpeg.run(stream, overwrite_output=True)
+            except ffmpeg.Error as e:
+                print("Erreur FFmpeg lors de la conversion :")
+                return None
+        else:
+            # Raw upload: just copy the file
+            output_path = os.path.join(output_dir, f"{filename}{os.path.splitext(input_path)[1]}")
+            shutil.copy2(input_path, output_path)
+
+        # Génération de la miniature (toujours générer, même pour raw upload)
+        thumbnail_path = os.path.join(output_dir, f"{filename}_thumb.jpg")
         try:
-            stream = ffmpeg.input(input_path)
-            stream = ffmpeg.output(stream, output_path, 
-                                   vcodec='libx264', 
-                                   acodec='aac')
-            ffmpeg.run(stream, overwrite_output=True)
-        except ffmpeg.Error as e:
-            print("Erreur FFmpeg lors de la conversion :")
-            #print(f"Stderr: {e.stderr.decode() if e.stderr else 'Pas de message d\'erreur'}")
-
-
-
-
-            return None
-
-        # Génération de la miniature
-        try:
-            probe = ffmpeg.probe(output_path)
+            # Utiliser le fichier converti ou original pour la miniature
+            probe_path = output_path if convert else input_path
+            probe = ffmpeg.probe(probe_path)
             video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
             
             (
                 ffmpeg
-                .input(output_path, ss=1)
+                .input(probe_path, ss=1)
                 .output(thumbnail_path, vframes=1)
                 .overwrite_output()
                 .run(capture_stdout=True, capture_stderr=True)

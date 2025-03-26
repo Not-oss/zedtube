@@ -26,3 +26,4 @@ class Video(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     upload_date = db.Column(db.DateTime, server_default=func.now())
     processed_path = db.Column(db.String(255), nullable=True)
+    is_converted = db.Column(db.Boolean, default=True)  # New column
