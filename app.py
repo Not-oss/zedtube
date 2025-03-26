@@ -3,7 +3,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from functools import wraps
 
 from werkzeug.utils import secure_filename
-from models import db, User, Video, VideoView  # Ajoutez VideoView ici
+from models import db, User, Video, VideoView, Folder  # Ajoutez Folder ici
 from datetime import datetime
 from utils import process_video
 import os

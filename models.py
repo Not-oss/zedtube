@@ -29,8 +29,7 @@ class Folder(db.Model):
     name = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.now())
-    
-    videos = db.relationship('Video', backref='folder', lazy=True)
+    user = db.relationship('User', backref='folders')
 
 class Video(db.Model):
     id = db.Column(db.Integer, primary_key=True)
