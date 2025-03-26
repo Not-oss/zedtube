@@ -150,9 +150,16 @@ def delete_video(video_id):
     
     return redirect(url_for('admin_panel'))
 
-@app.route('/upload', methods=['POST'])
+
+@app.route('/test_upload', methods=['POST'])
+def test_upload():
+    return jsonify({'status': 'success', 'method': request.method})
+
+@app.route('/upload', methods=['GET', 'POST'])  # Les deux méthodes si nécessaire
 @login_required
 def upload_video():
+    if request.method == 'GET':
+        return render_template('upload.html')
     if not current_user.can_upload:
         return jsonify({'error': "Vous n'avez pas la permission d'uploader"}), 403
     

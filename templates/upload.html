@@ -47,85 +47,48 @@
 </div>
 
 <script>
-function startUpload() {
-    const fileInput = document.getElementById('videoFile');
-    const file = fileInput.files[0];
-    const title = document.getElementById('videoTitle').value || file.name;
-    const uploadForm = document.getElementById('uploadForm');
-    const uploadProgress = document.getElementById('uploadProgress');
-    const progressBar = document.getElementById('progressBar');
-    const progressStatus = document.getElementById('progressStatus');
-    const processingInfo = document.getElementById('processingInfo');
-
-    // Validation
-    if (!file) {
-        alert('Veuillez sélectionner un fichier vidéo');
-        return;
-    }
-
-    const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1 GB
-    if (file.size > MAX_FILE_SIZE) {
-        alert('Fichier trop volumineux. Taille maximale: 1GB');
-        return;
-    }
-
-    // Afficher la progression
-    uploadForm.classList.add('hidden');
-    uploadProgress.classList.remove('hidden');
-
-    // Préparer FormData
-    const formData = new FormData();
-    formData.append('video', file);
-    formData.append('title', title);
-    formData.append('convert', document.getElementById('convertVideo').checked ? 'true' : 'false');
-
-    // Configuration XHR
-    const xhr = new XMLHttpRequest();
-
-    xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-            const percentComplete = (event.loaded / event.total) * 100;
-            progressBar.style.width = `${percentComplete}%`;
-            progressStatus.textContent = `Upload en cours: ${Math.round(percentComplete)}%`;
+    function startUpload() {
+        const fileInput = document.getElementById('videoFile');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            alert('Veuillez sélectionner un fichier vidéo');
+            return;
         }
-    };
-
-    xhr.onload = () => {
-        if (xhr.status === 200) {
-            try {
-                const response = JSON.parse(xhr.responseText);
-                progressStatus.textContent = 'Upload terminé! Traitement en cours...';
-                document.getElementById('fileSize').textContent = response.file_size;
-                document.getElementById('estimatedTime').textContent = response.estimated_time;
-                processingInfo.classList.remove('hidden');
-
-                // Redirection après un délai
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 3000);
-            } catch (e) {
-                progressStatus.textContent = 'Erreur lors du traitement';
-                console.error(e);
-            }
-        } else {
-            progressStatus.textContent = 'Échec de l\'upload';
-            console.error(xhr.responseText);
-        }
-    };
-
-    xhr.onerror = () => {
-        progressStatus.textContent = 'Erreur réseau. Veuillez réessayer.';
-    };
-
-    xhr.open('POST', '/upload', true);
-    xhr.send(formData);
-}
-
-// Afficher le nom du fichier sélectionné
-document.getElementById('videoFile').addEventListener('change', function(e) {
-    const fileName = e.target.files[0] ? e.target.files[0].name : 'Aucun fichier sélectionné';
-    const label = e.target.closest('label');
-    label.querySelector('p:first-of-type').textContent = fileName;
-});
-</script>
+    
+        const formData = new FormData();
+        formData.append('video', file);
+        formData.append('title', document.getElementById('videoTitle').value || file.name);
+        formData.append('convert', document.getElementById('convertVideo').checked);
+    
+        // Afficher la progression
+        document.getElementById('uploadForm').classList.add('hidden');
+        document.getElementById('uploadProgress').classList.remove('hidden');
+    
+        fetch('/upload', {
+            method: 'POST',
+            body: formData,
+            // Pas de 'Content-Type' header pour FormData, le navigateur le gère
+        })
+        .then(response => {
+            if (!response.ok) throw new Error(response.statusText);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            // Afficher les infos de traitement
+            document.getElementById('fileSize').textContent = data.file_size;
+            document.getElementById('estimatedTime').textContent = data.estimated_time;
+            document.getElementById('processingInfo').classList.remove('hidden');
+            
+            // Redirection après 3 secondes
+            setTimeout(() => window.location.href = '/', 3000);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('progressStatus').textContent = 'Erreur: ' + error.message;
+        });
+    }
+    </script>
 {% endblock %}
