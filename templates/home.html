@@ -5,29 +5,23 @@
     <div class="group relative">
         <div class="aspect-video bg-[#1E1E1E] rounded-lg overflow-hidden mb-2 border border-[#3C3C3C]">
             <a href="{{ url_for('video_page', video_id=video.id) }}" class="block h-full">
-                <video 
-                    src="{{ url_for('serve_video', filename=video.filename) }}" 
-                    class="w-full h-full object-cover"
-                    preload="metadata"
-                ></video>
-                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                    <div class="bg-black bg-opacity-50 rounded-full p-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                        </svg>
-                    </div>
-                </div>
+                <!-- Contenu vidéo -->
             </a>
         </div>
         <div class="flex justify-between items-start">
             <div class="flex-1 min-w-0">
-                <h3 class="text-sm font-medium truncate">
-                    {{ video.title or 'Untitled Video' }}
-                </h3>
-                <p class="text-xs text-gray-400">
-                    {{ video.upload_date.strftime('%b %d, %Y') }}
-                </p>
+                <h3 class="text-sm font-medium truncate">{{ video.title or 'Untitled Video' }}</h3>
+                <p class="text-xs text-gray-400">{{ video.upload_date.strftime('%b %d, %Y') }}</p>
             </div>
+            <button 
+                onclick="event.preventDefault(); event.stopPropagation(); copyFullShareLink({{ video.id }});" 
+                class="ml-2 text-gray-400 hover:text-white focus:outline-none"
+                title="Share"
+            >
+                <!-- Icône Share -->
+            </button>
+        </div>
+    </div>
             <button 
                 onclick="copyFullShareLink({{ video.id }}); event.stopPropagation();" 
                 class="ml-2 text-gray-400 hover:text-white"

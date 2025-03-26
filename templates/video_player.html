@@ -1,77 +1,95 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mx-auto max-w-4xl">
-    <div class="bg-[#1E1E1E] rounded-lg overflow-hidden shadow-2xl">
-        <div class="aspect-video bg-black">
-            <video 
-                id="videoPlayer" 
-                controls 
+<div class="container mx-auto max-w-6xl px-4 py-8">
+    <div class="bg-[#1E1E1E] rounded-xl overflow-hidden shadow-2xl">
+        <!-- Player amélioré -->
+        <div class="relative aspect-video bg-black">
+            <video
+                id="videoPlayer"
                 class="w-full h-full"
-                src="{{ url_for('serve_video', filename=video.filename) }}"
+                controls
+                controlsList="nodownload"
+                poster="{{ url_for('serve_thumbnail', filename=video.filename) }}"
             >
+                <source src="{{ url_for('serve_video', filename=video.filename) }}" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
+            
+            <!-- Overlay pour les contrôles custom -->
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 hover:opacity-100 transition-opacity">
+                <div class="flex justify-between items-center">
+                    <div class="flex space-x-2">
+                        <button id="playPauseBtn" class="text-white p-2 rounded-full hover:bg-white/10">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+                        <div class="text-white text-sm self-center">00:00 / 00:00</div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="copyPageLink()" class="text-white p-2 rounded-full hover:bg-white/10" title="Copy video page link">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                            </svg>
+                        </button>
+                        <button onclick="copyDirectLink()" class="text-white p-2 rounded-full hover:bg-white/10" title="Copy direct video link">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
         
-        <div class="p-4">
-            <h1 class="text-xl font-bold mb-2">{{ video.title or 'Untitled Video' }}</h1>
-            
-            <div class="flex justify-between items-center">
-                <span class="text-sm text-gray-400">
-                    Uploaded on {{ video.upload_date.strftime('%B %d, %Y') }}
-                </span>
-                
-                <div class="flex space-x-2">
-                    <button 
-                        onclick="copyPageLink()" 
-                        class="bg-[#2C2C2C] hover:bg-[#3C3C3C] text-white px-3 py-1 rounded-full text-sm transition"
-                    >
-                        Share Page
-                    </button>
-                    <button 
-                        onclick="copyDirectLink()" 
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full text-sm transition"
-                    >
-                        Direct Link
-                    </button>
-                    <button 
-                        onclick="downloadVideo()" 
-                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-full text-sm transition"
-                    >
-                        Download
+        <!-- Infos vidéo -->
+        <div class="p-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-2xl font-bold mb-2">{{ video.title or 'Untitled Video' }}</h1>
+                    <div class="flex items-center space-x-4 text-sm text-gray-400">
+                        <span>Uploaded {{ video.upload_date.strftime('%B %d, %Y') }}</span>
+                        <span>•</span>
+                        <span>{{ video.views }} views</span>
+                    </div>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="downloadVideo()" class="flex items-center space-x-1 bg-[#2C2C2C] hover:bg-[#3C3C3C] text-white px-4 py-2 rounded-lg transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        <span>Download</span>
                     </button>
                 </div>
-                
-                <script>
-                function copyPageLink() {
-                    navigator.clipboard.writeText(window.location.href).then(() => {
-                        alert('Page link copied!');
-                    });
-                }
-                
-                function copyDirectLink() {
-                    const directLink = "{{ url_for('serve_video', filename=video.filename, _external=True) }}";
-                    navigator.clipboard.writeText(directLink).then(() => {
-                        alert('Direct video link copied!');
-                    });
-                }
-                </script>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-function copyLink() {
-    const fullUrl = window.location.href;
-    navigator.clipboard.writeText(fullUrl).then(() => {
-        alert('Link copied!');
-    }).catch(err => {
-        console.error('Could not copy text: ', err);
-    });
+// Contrôles vidéo custom
+const video = document.getElementById('videoPlayer');
+const playPauseBtn = document.getElementById('playPauseBtn');
+
+playPauseBtn.addEventListener('click', () => {
+    if (video.paused) {
+        video.play();
+    } else {
+        video.pause();
+    }
+});
+
+function copyPageLink() {
+    navigator.clipboard.writeText(window.location.href)
+        .then(() => alert('Video page link copied!'))
+        .catch(err => console.error('Could not copy text: ', err));
 }
 
 function copyDirectLink() {
     const directLink = "{{ url_for('serve_video', filename=video.filename, _external=True) }}";
-    navigator.clipboard.writeText(directLink).then(() => {
-        alert('Direct link copied!');
-    });
+    navigator.clipboard.writeText(directLink)
+        .then(() => alert('Direct video link copied!'))
+        .catch(err => console.error('Could not copy text: ', err));
 }
 
 function downloadVideo() {
@@ -80,14 +98,5 @@ function downloadVideo() {
     link.download = "{{ video.title or 'video' }}.mp4";
     link.click();
 }
-
-// Add interaction tracking
-document.getElementById('videoPlayer').addEventListener('play', () => {
-    console.log('Video started playing');
-});
-
-document.getElementById('videoPlayer').addEventListener('pause', () => {
-    console.log('Video paused');
-});
 </script>
 {% endblock %}
