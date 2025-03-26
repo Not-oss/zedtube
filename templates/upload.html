@@ -3,13 +3,23 @@
 <div class="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
     <h2 class="text-2xl mb-6 text-center dark:text-white">Uploader une vidéo</h2>
     
-    <div id="uploadForm" class="space-y-4">
+    <form id="uploadForm" class="space-y-4" enctype="multipart/form-data">
         <input type="text" id="videoTitle" name="title" placeholder="Titre de la vidéo" 
                class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white">
         
-        <input type="file" id="videoFile" name="video" accept="video/*" 
-               class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
-        
+        <div class="flex items-center justify-center w-full">
+            <label for="videoFile" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                    <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                    </svg>
+                    <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Cliquez pour upload</span> ou glissez-déposez</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">MP4, MOV (MAX. 1GB)</p>
+                </div>
+                <input id="videoFile" name="video" type="file" class="hidden" accept="video/*" required>
+            </label>
+        </div>
+
         <div class="flex items-center space-x-2">
             <input type="checkbox" id="convertVideo" name="convert" checked 
                    class="form-checkbox h-5 w-5 text-blue-600 dark:bg-gray-700 dark:border-gray-600">
@@ -18,19 +28,25 @@
             </label>
         </div>
         
-        <button onclick="startUpload()" 
+        <button type="button" onclick="startUpload()" 
                 class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-700">
             Commencer l'upload
         </button>
-    </div>
+    </form>
 
-    <div id="uploadProgress" class="hidden mt-6">
-        <!-- Existing progress UI remains the same -->
+    <div id="uploadProgress" class="hidden mt-6 space-y-4">
+        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+            <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+        </div>
+        <p id="progressStatus" class="text-sm dark:text-white">Préparation de l'upload...</p>
+        <div id="processingInfo" class="hidden text-sm dark:text-gray-300">
+            <p>Taille du fichier: <span id="fileSize">0</span> MB</p>
+            <p>Temps estimé: <span id="estimatedTime">0</span></p>
+        </div>
     </div>
 </div>
 
 <script>
-// Improved upload script with better error handling and progress tracking
 function startUpload() {
     const fileInput = document.getElementById('videoFile');
     const file = fileInput.files[0];
@@ -39,71 +55,77 @@ function startUpload() {
     const uploadProgress = document.getElementById('uploadProgress');
     const progressBar = document.getElementById('progressBar');
     const progressStatus = document.getElementById('progressStatus');
+    const processingInfo = document.getElementById('processingInfo');
 
-    // File size validation
-    const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1 GB
-    if (file.size > MAX_FILE_SIZE) {
-        alert('File too large. Maximum upload size is 1 GB.');
+    // Validation
+    if (!file) {
+        alert('Veuillez sélectionner un fichier vidéo');
         return;
     }
 
-    // Prepare form data
+    const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1 GB
+    if (file.size > MAX_FILE_SIZE) {
+        alert('Fichier trop volumineux. Taille maximale: 1GB');
+        return;
+    }
+
+    // Afficher la progression
+    uploadForm.classList.add('hidden');
+    uploadProgress.classList.remove('hidden');
+
+    // Préparer FormData
     const formData = new FormData();
     formData.append('video', file);
     formData.append('title', title);
-    formData.append('convert', 'true');
+    formData.append('convert', document.getElementById('convertVideo').checked ? 'true' : 'false');
 
-    // Create XHR object
+    // Configuration XHR
     const xhr = new XMLHttpRequest();
 
-    // Track upload progress
     xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
             const percentComplete = (event.loaded / event.total) * 100;
             progressBar.style.width = `${percentComplete}%`;
-            progressStatus.textContent = `Uploading: ${Math.round(percentComplete)}%`;
+            progressStatus.textContent = `Upload en cours: ${Math.round(percentComplete)}%`;
         }
     };
 
-    // Handle completion
     xhr.onload = () => {
         if (xhr.status === 200) {
             try {
                 const response = JSON.parse(xhr.responseText);
-                progressStatus.textContent = 'Upload complete! Processing video...';
-                
-                // Redirect to home after a short delay
+                progressStatus.textContent = 'Upload terminé! Traitement en cours...';
+                document.getElementById('fileSize').textContent = response.file_size;
+                document.getElementById('estimatedTime').textContent = response.estimated_time;
+                processingInfo.classList.remove('hidden');
+
+                // Redirection après un délai
                 setTimeout(() => {
                     window.location.href = '/';
-                }, 2000);
+                }, 3000);
             } catch (e) {
-                progressStatus.textContent = 'Error processing upload';
+                progressStatus.textContent = 'Erreur lors du traitement';
                 console.error(e);
             }
         } else {
-            progressStatus.textContent = 'Upload failed';
+            progressStatus.textContent = 'Échec de l\'upload';
             console.error(xhr.responseText);
         }
     };
 
-    // Handle errors
     xhr.onerror = () => {
-        progressStatus.textContent = 'Network error. Please try again.';
+        progressStatus.textContent = 'Erreur réseau. Veuillez réessayer.';
     };
 
-    // Prepare and send request
     xhr.open('POST', '/upload', true);
-    uploadForm.classList.add('hidden');
-    uploadProgress.classList.remove('hidden');
     xhr.send(formData);
 }
 
-// Add event listener to file input to show selected file name
-document.getElementById('videoFile').addEventListener('change', function() {
-    const fileName = this.files[0] ? this.files[0].name : 'No file selected';
-    const label = this.nextElementSibling;
-    label.querySelector('p').textContent = fileName;
+// Afficher le nom du fichier sélectionné
+document.getElementById('videoFile').addEventListener('change', function(e) {
+    const fileName = e.target.files[0] ? e.target.files[0].name : 'Aucun fichier sélectionné';
+    const label = e.target.closest('label');
+    label.querySelector('p:first-of-type').textContent = fileName;
 });
 </script>
 {% endblock %}
-
