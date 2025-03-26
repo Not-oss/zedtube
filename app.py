@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, abort, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from functools import wraps
+
 from werkzeug.utils import secure_filename
 from models import db, User, Video, VideoView  # Ajoutez VideoView ici
 from datetime import datetime
@@ -88,6 +90,15 @@ def get_client_fingerprint():
     accept_language = request.headers.get('Accept-Language', '')
     fingerprint_str = f"{user_agent}{ip}{accept_language}"
     return hashlib.sha256(fingerprint_str.encode()).hexdigest()
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route('/video/<int:video_id>')
 def video_page(video_id):
