@@ -30,74 +30,80 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Existing script with modifications to the startUpload function
-    function startUpload() {
-        const file = videoFile.files[0];
-        const title = document.getElementById('videoTitle').value;
-        const convertVideo = document.getElementById('convertVideo').checked;
-        
-        if (!file) {
-            alert('Veuillez sélectionner un fichier');
-            return;
-        }
+// Improved upload script with better error handling and progress tracking
+function startUpload() {
+    const fileInput = document.getElementById('videoFile');
+    const file = fileInput.files[0];
+    const title = document.getElementById('videoTitle').value || file.name;
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressStatus = document.getElementById('progressStatus');
 
-        // Vérification de la taille du fichier (limite à 1 Go)
-        const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1 Go
-        if (file.size > MAX_FILE_SIZE) {
-            alert('Le fichier est trop volumineux. Limite : 1 Go');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('video', file);
-        formData.append('title', title);
-        formData.append('convert', convertVideo);
-
-        // Rest of the existing upload script remains the same
-        uploadForm.classList.add('hidden');
-        uploadProgress.classList.remove('hidden');
-        // ... (rest of the existing script)
-
-        xhr.onload = () => {
-            if (xhr.status === 200) {
-                progressStatus.textContent = 'Upload terminé';
-                progressPercentage.textContent = '100%';
-                progressBar.style.width = '100%';
-                
-                try {
-                    const data = JSON.parse(xhr.responseText);
-                    processingInfo.classList.remove('hidden');
-                    fileSizeSpan.textContent = `${data.file_size || 0} Mo`;
-                    estimatedTimeSpan.textContent = data.estimated_time || '30 secondes';
-                    
-                    // Show conversion status
-                    if (data.converted) {
-                        processingStatus.innerHTML = `
-                            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-600"></div>
-                            <p class="text-gray-600 dark:text-gray-300">Conversion en cours...</p>
-                        `;
-                    } else {
-                        processingStatus.innerHTML = `
-                            <p class="text-gray-600 dark:text-gray-300">Fichier uploadé sans conversion</p>
-                        `;
-                    }
-                } catch (e) {
-                    console.error('Erreur lors du parsing de la réponse', e);
-                    errorText.textContent = 'Erreur lors du traitement de la réponse';
-                    errorMessage.classList.remove('hidden');
-                }
-            } else {
-                errorText.textContent = xhr.responseText || 'Erreur lors de l\'upload';
-                errorMessage.classList.remove('hidden');
-            }
-        };
-
-        xhr.open('POST', '/upload', true);
-        xhr.send(formData);
+    // File size validation
+    const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1 GB
+    if (file.size > MAX_FILE_SIZE) {
+        alert('File too large. Maximum upload size is 1 GB.');
+        return;
     }
 
-    window.startUpload = startUpload;
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('video', file);
+    formData.append('title', title);
+    formData.append('convert', 'true');
+
+    // Create XHR object
+    const xhr = new XMLHttpRequest();
+
+    // Track upload progress
+    xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+            const percentComplete = (event.loaded / event.total) * 100;
+            progressBar.style.width = `${percentComplete}%`;
+            progressStatus.textContent = `Uploading: ${Math.round(percentComplete)}%`;
+        }
+    };
+
+    // Handle completion
+    xhr.onload = () => {
+        if (xhr.status === 200) {
+            try {
+                const response = JSON.parse(xhr.responseText);
+                progressStatus.textContent = 'Upload complete! Processing video...';
+                
+                // Redirect to home after a short delay
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } catch (e) {
+                progressStatus.textContent = 'Error processing upload';
+                console.error(e);
+            }
+        } else {
+            progressStatus.textContent = 'Upload failed';
+            console.error(xhr.responseText);
+        }
+    };
+
+    // Handle errors
+    xhr.onerror = () => {
+        progressStatus.textContent = 'Network error. Please try again.';
+    };
+
+    // Prepare and send request
+    xhr.open('POST', '/upload', true);
+    uploadForm.classList.add('hidden');
+    uploadProgress.classList.remove('hidden');
+    xhr.send(formData);
+}
+
+// Add event listener to file input to show selected file name
+document.getElementById('videoFile').addEventListener('change', function() {
+    const fileName = this.files[0] ? this.files[0].name : 'No file selected';
+    const label = this.nextElementSibling;
+    label.querySelector('p').textContent = fileName;
 });
 </script>
 {% endblock %}
+

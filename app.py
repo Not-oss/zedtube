@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, send_from_
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.utils import secure_filename
 from models import db, User, Video
+from datetime import datetime
 from utils import process_video
 import os
 import sys
@@ -29,14 +30,24 @@ def load_user(user_id):
 @app.route('/')
 def home():
     try:
-        # Add some error handling and logging
+        # Ensure videos exist by creating a default video if none
+        if Video.query.count() == 0:
+            # Create a default video for demonstration
+            default_video = Video(
+                filename='default_video.mp4',  # Ensure this file exists in your uploads folder
+                original_filename='default_video.mp4',  # Add this line
+                title='Welcome to ZedTube',
+                user_id=1,  # Assuming admin user exists
+                upload_date=datetime.utcnow()
+            )
+            db.session.add(default_video)
+            db.session.commit()
+
         videos = Video.query.order_by(Video.upload_date.desc()).all()
         return render_template('home.html', videos=videos)
     except Exception as e:
-        # Print the full traceback to console
         print("Error in home route:", str(e))
         traceback.print_exc()
-        # You might want to return an error page or message
         return f"An error occurred: {str(e)}", 500
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -66,6 +77,14 @@ def login():
             flash('Utilisateur non trouvé', 'error')
     
     return render_template('login.html')
+
+
+@app.route('/video/<int:video_id>')
+def video_page(video_id):
+    video = Video.query.get_or_404(video_id)
+    return render_template('video_player.html', video=video)
+
+
 
 @app.route('/create_admin')
 def create_admin():
@@ -267,3 +286,4 @@ if __name__ == '__main__':
             traceback.print_exc()
     
     app.run(host='0.0.0.0', port=8081, debug=True)
+

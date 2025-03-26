@@ -1,44 +1,41 @@
+```html
 <!DOCTYPE html>
-<html lang="fr" class="">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Clone YouTube</title>
+    <title>ZedTube</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        // Configure Tailwind to support dark mode
-        tailwind.config = {
-            darkMode: 'class'
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
         }
-    </script>
+    </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
-    <nav class="bg-blue-600 dark:bg-blue-900 text-white p-4">
+<body class="bg-[#121212] text-white min-h-screen">
+    <header class="bg-[#1E1E1E] border-b border-[#2C2C2C] px-4 py-3">
         <div class="container mx-auto flex justify-between items-center">
-            <a href="/" class="text-2xl font-bold">Clone YouTube</a>
+            <a href="/" class="text-2xl font-bold text-white">ZedTube</a>
             <div class="flex items-center space-x-4">
-                <button id="darkModeToggle" class="hover:text-blue-200 dark:hover:text-blue-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linej-round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                    </svg>
-                </button>
                 {% if current_user.is_authenticated %}
                     {% if current_user.can_upload %}
-                        <a href="/upload" class="mr-4 hover:text-blue-200 dark:hover:text-blue-300">Uploader</a>
+                        <a href="/upload" class="text-gray-300 hover:text-white transition">Upload</a>
                     {% endif %}
                     {% if current_user.is_admin %}
-                        <a href="/admin/panel" class="mr-4 hover:text-blue-200 dark:hover:text-blue-300">Panel Admin</a>
+                        <a href="/admin/panel" class="text-gray-300 hover:text-white transition">Admin</a>
                     {% endif %}
-                    <a href="/logout" class="hover:text-blue-200 dark:hover:text-blue-300">Déconnexion</a>
+                    <a href="/logout" class="text-gray-300 hover:text-white transition">Logout</a>
                 {% else %}
-                    <a href="/login" class="hover:text-blue-200 dark:hover:text-blue-300">Connexion</a>
+                    <a href="/login" class="text-gray-300 hover:text-white transition">Login</a>
                 {% endif %}
             </div>
         </div>
-    </nav>
-    
-    <div class="container mx-auto mt-8">
+    </header>
+
+    <main class="container mx-auto px-4 py-6">
         {% block content %}{% endblock %}
-    </div>
+    </main>
 </body>
 </html>
+```

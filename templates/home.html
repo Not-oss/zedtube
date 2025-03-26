@@ -1,45 +1,42 @@
+```html
 {% extends "base.html" %}
 {% block content %}
-<div class="container mx-auto px-4">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for video in videos %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl">
-            <div class="relative">
-                <video controls class="w-full h-48 object-cover">
-                    <source src="{{ url_for('serve_video', filename=video.filename) }}" type="video/mp4">
-                    Votre navigateur ne supporte pas la vidéo.
-                </video>
-            </div>
-            
-            <div class="p-4">
-                {% if video.title %}
-                    <h3 class="text-lg font-semibold mb-2 dark:text-white truncate">{{ video.title }}</h3>
-                {% endif %}
-                
-                <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-500 dark:text-gray-400">
-                        {{ video.upload_date.strftime('%d/%m/%Y') }}
-                    </span>
-                    
-                    <button 
-                        onclick="copyFullShareLink({{ video.id }})" 
-                        class="bg-blue-500 dark:bg-blue-700 text-white px-3 py-1 rounded-full text-sm hover:bg-blue-600 transition-colors"
-                    >
-                        Partager
-                    </button>
-                </div>
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    {% for video in videos %}
+    <div class="group relative cursor-pointer">
+        <div class="aspect-video bg-[#1E1E1E] rounded-lg overflow-hidden">
+            <video 
+                src="{{ url_for('serve_video', filename=video.filename) }}" 
+                class="w-full h-full object-cover transition-opacity group-hover:opacity-75"
+                preload="metadata"
+            ></video>
+            <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                <button 
+                    onclick="copyFullShareLink({{ video.id }})" 
+                    class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full"
+                >
+                    Share
+                </button>
             </div>
         </div>
-        {% endfor %}
+        <div class="mt-2">
+            <h3 class="text-sm font-medium truncate">
+                {{ video.title or 'Untitled Video' }}
+            </h3>
+            <p class="text-xs text-gray-400">
+                {{ video.upload_date.strftime('%b %d, %Y') }}
+            </p>
+        </div>
     </div>
-
-    {% if not videos %}
-    <div class="text-center py-12 bg-gray-100 dark:bg-gray-900 rounded-lg">
-        <h2 class="text-2xl text-gray-600 dark:text-gray-400">Aucune vidéo disponible</h2>
-        <p class="text-gray-500 dark:text-gray-500 mt-2">Les vidéos que vous uploadez apparaîtront ici</p>
-    </div>
-    {% endif %}
+    {% endfor %}
 </div>
+
+{% if not videos %}
+<div class="text-center py-12">
+    <h2 class="text-2xl text-gray-500">No videos uploaded yet</h2>
+    <p class="text-gray-600 mt-2">Your uploaded videos will appear here</p>
+</div>
+{% endif %}
 
 <script>
 function copyFullShareLink(videoId) {
@@ -47,36 +44,10 @@ function copyFullShareLink(videoId) {
         .then(response => response.text())
         .then(link => {
             navigator.clipboard.writeText(link).then(() => {
-                alert('Lien copié !');
+                alert('Link copied!');
             });
         });
 }
-
-// Dark mode persistent toggle
-document.addEventListener('DOMContentLoaded', () => {
-    const htmlElement = document.documentElement;
-    const darkModeToggle = document.getElementById('darkModeToggle');
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
-
-    function applyDarkMode(isDark) {
-        if (isDark) {
-            htmlElement.classList.add('dark');
-        } else {
-            htmlElement.classList.remove('dark');
-        }
-    }
-
-    // Initial dark mode setup
-    applyDarkMode(savedDarkMode);
-
-    // Toggle dark mode
-    if (darkModeToggle) {
-        darkModeToggle.addEventListener('click', () => {
-            const isDark = !htmlElement.classList.contains('dark');
-            applyDarkMode(isDark);
-            localStorage.setItem('darkMode', isDark);
-        });
-    }
-});
 </script>
 {% endblock %}
+```

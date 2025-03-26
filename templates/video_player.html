@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mx-auto max-w-4xl">
+    <div class="bg-[#1E1E1E] rounded-lg overflow-hidden shadow-2xl">
+        <div class="aspect-video bg-black">
+            <video 
+                id="videoPlayer" 
+                controls 
+                class="w-full h-full"
+                src="{{ url_for('serve_video', filename=video.filename) }}"
+            >
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        
+        <div class="p-4">
+            <h1 class="text-xl font-bold mb-2">{{ video.title or 'Untitled Video' }}</h1>
+            
+            <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-400">
+                    Uploaded on {{ video.upload_date.strftime('%B %d, %Y') }}
+                </span>
+                
+                <div class="flex space-x-2">
+                    <button 
+                        onclick="copyLink()" 
+                        class="bg-[#2C2C2C] hover:bg-[#3C3C3C] text-white px-3 py-1 rounded-full text-sm transition"
+                    >
+                        Copy Link
+                    </button>
+                    <button 
+                        onclick="downloadVideo()" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-full text-sm transition"
+                    >
+                        Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        alert('Link copied!');
+    });
+}
+
+function downloadVideo() {
+    const link = document.createElement('a');
+    link.href = "{{ url_for('serve_video', filename=video.filename) }}";
+    link.download = "{{ video.title or 'video' }}.mp4";
+    link.click();
+}
+
+// Add interaction tracking
+document.getElementById('videoPlayer').addEventListener('play', () => {
+    console.log('Video started playing');
+});
+
+document.getElementById('videoPlayer').addEventListener('pause', () => {
+    console.log('Video paused');
+});
+</script>
+{% endblock %}
