@@ -267,7 +267,6 @@ def serve_thumbnail(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], thumbnail_filename)
 
 @app.route('/generate_share_link/<int:video_id>')
-@login_required
 def generate_share_link(video_id):
     video = Video.query.get_or_404(video_id)
     share_link = request.host_url.rstrip('/') + url_for('video_page', video_id=video.id)

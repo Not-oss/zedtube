@@ -23,10 +23,10 @@
                 
                 <div class="flex space-x-2">
                     <button 
-                        onclick="copyLink()" 
+                        onclick="copyPageLink()" 
                         class="bg-[#2C2C2C] hover:bg-[#3C3C3C] text-white px-3 py-1 rounded-full text-sm transition"
                     >
-                        Copy Link
+                        Share Page
                     </button>
                     <button 
                         onclick="copyDirectLink()" 
@@ -41,6 +41,21 @@
                         Download
                     </button>
                 </div>
+                
+                <script>
+                function copyPageLink() {
+                    navigator.clipboard.writeText(window.location.href).then(() => {
+                        alert('Page link copied!');
+                    });
+                }
+                
+                function copyDirectLink() {
+                    const directLink = "{{ url_for('serve_video', filename=video.filename, _external=True) }}";
+                    navigator.clipboard.writeText(directLink).then(() => {
+                        alert('Direct video link copied!');
+                    });
+                }
+                </script>
 
 <script>
 function copyLink() {

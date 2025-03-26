@@ -3,55 +3,59 @@
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
     {% for video in videos %}
     <div class="group relative cursor-pointer">
-        <div class="aspect-video bg-[#1E1E1E] rounded-lg overflow-hidden">
-            <a href="{{ url_for('video_page', video_id=video.id) }}">
+        <a href="{{ url_for('video_page', video_id=video.id) }}" class="block">
+            <div class="aspect-video bg-[#1E1E1E] rounded-lg overflow-hidden">
                 <video 
                     src="{{ url_for('serve_video', filename=video.filename) }}" 
-                    class="w-full h-full object-cover"
+                    class="w-full h-full object-cover transition-opacity group-hover:opacity-75"
                     preload="metadata"
                 ></video>
-            </a>
-            <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                <button 
-                    onclick="event.stopPropagation(); copyFullShareLink({{ video.id }})" 
-                    class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full"
-                >
-                    Share
-                </button>
+                <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                    <div class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white w-12 h-12 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="mt-2">
-            <h3 class="text-sm font-medium truncate">
-                {{ video.title or 'Untitled Video' }}
-            </h3>
-            <p class="text-xs text-gray-400">
-                {{ video.upload_date.strftime('%b %d, %Y') }}
-            </p>
+        </a>
+        <div class="mt-2 flex justify-between items-start">
+            <div>
+                <h3 class="text-sm font-medium truncate">
+                    {{ video.title or 'Untitled Video' }}
+                </h3>
+                <p class="text-xs text-gray-400">
+                    {{ video.upload_date.strftime('%b %d, %Y') }}
+                </p>
+            </div>
+            <button 
+                onclick="event.stopPropagation(); copyFullShareLink({{ video.id }})" 
+                class="text-gray-400 hover:text-white mt-1"
+                title="Share"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+            </button>
         </div>
     </div>
     {% endfor %}
 </div>
 
-{% if not videos %}
-<div class="text-center py-12">
-    <h2 class="text-2xl text-gray-500">No videos uploaded yet</h2>
-    <p class="text-gray-600 mt-2">Your uploaded videos will appear here</p>
-</div>
-{% endif %}
-
 <script>
-    function copyFullShareLink(videoId) {
-        fetch(`/generate_share_link/${videoId}`)
-            .then(response => response.json())
-            .then(data => {
-                navigator.clipboard.writeText(data.share_link).then(() => {
-                    alert('Link copied!');
-                });
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to copy link');
+function copyFullShareLink(videoId) {
+    fetch(`/generate_share_link/${videoId}`)
+        .then(response => response.json())
+        .then(data => {
+            navigator.clipboard.writeText(data.share_link).then(() => {
+                alert('Link copied to clipboard!');
             });
-    }
-    </script>
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to copy link');
+        });
+}
+</script>
 {% endblock %}
