@@ -113,6 +113,42 @@ def video_page(video_id):
     return render_template('video_player.html', video=video)
 
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        # Validation simple
+        if not username or not password:
+            flash('Username and password are required', 'error')
+            return redirect(url_for('register'))
+        
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists', 'error')
+            return redirect(url_for('register'))
+        
+        # Création du user
+        new_user = User(username=username)
+        new_user.set_password(password)
+        
+        # Par défaut, les nouveaux users ne peuvent pas upload
+        new_user.can_upload = False
+        new_user.is_admin = False
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Registration successful! Please login.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+
+
 @app.route('/create_admin')
 def create_admin():
     with app.app_context():
