@@ -1,10 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import ForeignKey
 from sqlalchemy.sql import func
 
-# Initialisation de SQLAlchemy
 db = SQLAlchemy()
 
 class User(UserMixin, db.Model):
@@ -13,10 +12,8 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     can_upload = db.Column(db.Boolean, default=False)
     is_admin = db.Column(db.Boolean, default=False)
-    upload_requested = db.Column(db.Boolean, default=False)  # Demande d'upload
-    
-    videos = db.relationship('Video', backref='user', lazy=True)
-    folders = db.relationship('Folder', backref='user', lazy=True)
+    # Relation modifiée avec backref personnalisé
+    created_folders = db.relationship('Folder', back_populates='creator', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -29,7 +26,9 @@ class Folder(db.Model):
     name = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.now())
-    user = db.relationship('User', backref='folders')
+    # Relation modifiée
+    creator = db.relationship('User', back_populates='created_folders')
+    videos = db.relationship('Video', back_populates='parent_folder', lazy=True)
 
 class Video(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -42,11 +41,6 @@ class Video(db.Model):
     is_converted = db.Column(db.Boolean, default=True)
     views = db.Column(db.Integer, default=0)
     folder_id = db.Column(db.Integer, ForeignKey('folder.id'), nullable=True)
-    
-    views_relations = db.relationship('VideoView', backref='video', lazy=True)
-
-class VideoView(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    video_id = db.Column(db.Integer, ForeignKey('video.id'), nullable=False)
-    fingerprint = db.Column(db.String(64), index=True)
-    created_at = db.Column(db.DateTime, server_default=func.now())
+    # Relation modifiée
+    parent_folder = db.relationship('Folder', back_populates='videos')
+    uploader = db.relationship('User', backref='uploaded_videos')
