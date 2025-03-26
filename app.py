@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, abort, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.utils import secure_filename
-from models import db, User, Video
+from models import db, User, Video, VideoView  # Ajoutez VideoView ici
 from datetime import datetime
 from utils import process_video
 import os
@@ -81,20 +81,28 @@ def login():
     return render_template('login.html')
 
 
+def get_client_fingerprint():
+    """Generate unique client fingerprint"""
+    user_agent = request.headers.get('User-Agent', '')
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    accept_language = request.headers.get('Accept-Language', '')
+    fingerprint_str = f"{user_agent}{ip}{accept_language}"
+    return hashlib.sha256(fingerprint_str.encode()).hexdigest()
+
 @app.route('/video/<int:video_id>')
 def video_page(video_id):
     video = Video.query.get_or_404(video_id)
     fingerprint = get_client_fingerprint()
     
-    # Vérifie si cette vue existe déjà
+    # Check if view already exists
     existing_view = VideoView.query.filter_by(
         video_id=video_id,
         fingerprint=fingerprint
     ).first()
 
     if not existing_view:
-        # Nouvelle vue
-        video.views += 1
+        # New view - increment counter
+        video.views = Video.views + 1  # Atomic increment
         new_view = VideoView(
             video_id=video_id,
             fingerprint=fingerprint
@@ -103,14 +111,6 @@ def video_page(video_id):
         db.session.commit()
 
     return render_template('video_player.html', video=video)
-
-def get_client_fingerprint():
-    """Génère un fingerprint unique pour le client"""
-    user_agent = request.headers.get('User-Agent', '')
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    accept_language = request.headers.get('Accept-Language', '')
-    fingerprint_str = f"{user_agent}{ip}{accept_language}"
-    return hashlib.sha256(fingerprint_str.encode()).hexdigest()
 
 
 @app.route('/create_admin')
