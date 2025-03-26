@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import func
+from sqlalchemy import Column, Integer, String, Text
 
 db = SQLAlchemy()
 
@@ -18,6 +18,13 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+
+class VideoView(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    video_id = db.Column(db.Integer, db.ForeignKey('video.id'))
+    fingerprint = db.Column(db.String(64), index=True)
+    created_at = db.Column(db.DateTime, server_default=func.now())
+
 class Video(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(255), nullable=False)
@@ -27,3 +34,4 @@ class Video(db.Model):
     upload_date = db.Column(db.DateTime, server_default=func.now())
     processed_path = db.Column(db.String(255), nullable=True)
     is_converted = db.Column(db.Boolean, default=True)  # New column
+    views = db.Column(db.Integer, default=0)

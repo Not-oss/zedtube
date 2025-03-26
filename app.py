@@ -7,6 +7,8 @@ from utils import process_video
 import os
 import sys
 import traceback
+import hashlib
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'votre_clé_secrète_ici'
@@ -82,8 +84,33 @@ def login():
 @app.route('/video/<int:video_id>')
 def video_page(video_id):
     video = Video.query.get_or_404(video_id)
+    fingerprint = get_client_fingerprint()
+    
+    # Vérifie si cette vue existe déjà
+    existing_view = VideoView.query.filter_by(
+        video_id=video_id,
+        fingerprint=fingerprint
+    ).first()
+
+    if not existing_view:
+        # Nouvelle vue
+        video.views += 1
+        new_view = VideoView(
+            video_id=video_id,
+            fingerprint=fingerprint
+        )
+        db.session.add(new_view)
+        db.session.commit()
+
     return render_template('video_player.html', video=video)
 
+def get_client_fingerprint():
+    """Génère un fingerprint unique pour le client"""
+    user_agent = request.headers.get('User-Agent', '')
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    accept_language = request.headers.get('Accept-Language', '')
+    fingerprint_str = f"{user_agent}{ip}{accept_language}"
+    return hashlib.sha256(fingerprint_str.encode()).hexdigest()
 
 
 @app.route('/create_admin')

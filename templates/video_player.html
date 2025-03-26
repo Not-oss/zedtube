@@ -19,10 +19,11 @@
                     <h1 class="text-xl md:text-2xl font-bold text-white mb-2 break-words">
                         {{ video.title or 'Untitled Video' }}
                     </h1>
-                    <div class="flex items-center space-x-3 text-sm text-gray-400">
+                    <div class="flex items-center space-x-4 text-sm text-gray-400">
                         <span>{{ video.upload_date.strftime('%B %d, %Y') }}</span>
                         <span>•</span>
-                        <span>{{ video.views }} views</span>
+                        <span>{{ video.views }} vue{% if video.views > 1 %}s{% endif %}</span>
+                    </div>
                     </div>
                 </div>
 
