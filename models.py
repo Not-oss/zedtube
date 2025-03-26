@@ -45,7 +45,7 @@ class Video(db.Model):
     parent_folder = db.relationship('Folder', back_populates='videos')
     uploader = db.relationship('User', backref='uploaded_videos')
     
-    class VideoView(db.Model):
+class VideoView(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     video_id = db.Column(db.Integer, ForeignKey('video.id'), nullable=False)
     user_id = db.Column(db.Integer, ForeignKey('user.id'), nullable=True)  # Nullable pour les visiteurs anonymes
