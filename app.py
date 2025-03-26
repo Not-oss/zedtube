@@ -229,39 +229,9 @@ def request_action(user_id, action):
     db.session.commit()
     return redirect(url_for('manage_requests'))
 
-# Gestion des dossiers
-@app.route('/admin/folders')
-@login_required
-@admin_required
-def manage_folders():
-    folders = Folder.query.all()
-    return render_template('admin_folders.html', folders=folders)
 
-@app.route('/admin/create_folder', methods=['POST'])
-@login_required
-@admin_required
-def create_folder():
-    name = request.form.get('name')
-    if not name:
-        flash('Folder name is required', 'error')
-        return redirect(url_for('manage_folders'))
-    
-    new_folder = Folder(name=name)
-    db.session.add(new_folder)
-    db.session.commit()
-    flash(f'Folder "{name}" created', 'success')
-    return redirect(url_for('manage_folders'))
 
-@app.route('/admin/move_video/<int:video_id>', methods=['POST'])
-@login_required
-@admin_required
-def move_video(video_id):
-    video = Video.query.get_or_404(video_id)
-    folder_id = request.form.get('folder_id')
-    video.folder_id = folder_id if folder_id else None
-    db.session.commit()
-    flash('Video moved successfully', 'success')
-    return redirect(request.referrer or url_for('home'))
+
 
 @app.route('/create_admin')
 def create_admin():
