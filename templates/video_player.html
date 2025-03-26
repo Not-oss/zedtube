@@ -29,16 +29,18 @@
                         Copy Link
                     </button>
                     <button 
+                        onclick="copyDirectLink()" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full text-sm transition"
+                    >
+                        Direct Link
+                    </button>
+                    <button 
                         onclick="downloadVideo()" 
                         class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-full text-sm transition"
                     >
                         Download
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
 function copyLink() {
@@ -47,6 +49,13 @@ function copyLink() {
         alert('Link copied!');
     }).catch(err => {
         console.error('Could not copy text: ', err);
+    });
+}
+
+function copyDirectLink() {
+    const directLink = "{{ url_for('serve_video', filename=video.filename, _external=True) }}";
+    navigator.clipboard.writeText(directLink).then(() => {
+        alert('Direct link copied!');
     });
 }
 

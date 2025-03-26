@@ -4,14 +4,16 @@
     {% for video in videos %}
     <div class="group relative cursor-pointer">
         <div class="aspect-video bg-[#1E1E1E] rounded-lg overflow-hidden">
-            <video 
-                src="{{ url_for('serve_video', filename=video.filename) }}" 
-                class="w-full h-full object-cover transition-opacity group-hover:opacity-75"
-                preload="metadata"
-            ></video>
+            <a href="{{ url_for('video_page', video_id=video.id) }}">
+                <video 
+                    src="{{ url_for('serve_video', filename=video.filename) }}" 
+                    class="w-full h-full object-cover"
+                    preload="metadata"
+                ></video>
+            </a>
             <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                 <button 
-                    onclick="copyFullShareLink({{ video.id }})" 
+                    onclick="event.stopPropagation(); copyFullShareLink({{ video.id }})" 
                     class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full"
                 >
                     Share
