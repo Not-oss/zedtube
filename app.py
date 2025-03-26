@@ -146,18 +146,19 @@ def video_page(video_id):
     video = Video.query.get_or_404(video_id)
     fingerprint = get_client_fingerprint()
     
-    # Check if view already exists
+    # Vérifie si cette vue existe déjà
     existing_view = VideoView.query.filter_by(
         video_id=video_id,
         fingerprint=fingerprint
     ).first()
 
     if not existing_view:
-        # New view - increment counter
-        video.views = Video.views + 1  # Atomic increment
+        # Nouvelle vue
+        video.views += 1
         new_view = VideoView(
             video_id=video_id,
-            fingerprint=fingerprint
+            fingerprint=fingerprint,
+            user_id=current_user.id if current_user.is_authenticated else None
         )
         db.session.add(new_view)
         db.session.commit()

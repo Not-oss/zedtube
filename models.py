@@ -44,3 +44,14 @@ class Video(db.Model):
     # Relation modifiée
     parent_folder = db.relationship('Folder', back_populates='videos')
     uploader = db.relationship('User', backref='uploaded_videos')
+    
+    class VideoView(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    video_id = db.Column(db.Integer, ForeignKey('video.id'), nullable=False)
+    user_id = db.Column(db.Integer, ForeignKey('user.id'), nullable=True)  # Nullable pour les visiteurs anonymes
+    fingerprint = db.Column(db.String(64), index=True)
+    viewed_at = db.Column(db.DateTime, server_default=func.now())
+    
+    # Relations
+    video = db.relationship('Video', backref='views_relations')
+    user = db.relationship('User', backref='viewed_videos')
