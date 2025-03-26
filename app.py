@@ -262,9 +262,13 @@ def serve_video(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 @app.route('/thumbnail/<filename>')
 def serve_thumbnail(filename):
-    base_filename = os.path.splitext(filename)[0]
-    thumbnail_filename = f"{base_filename}_thumb.jpg"
-    return send_from_directory(app.config['UPLOAD_FOLDER'], thumbnail_filename)
+    try:
+        base_filename = os.path.splitext(filename)[0]
+        thumbnail_filename = f"{base_filename}_thumb.jpg"
+        return send_from_directory(app.config['UPLOAD_FOLDER'], thumbnail_filename)
+    except FileNotFoundError:
+        # Retourner une image par défaut si la miniature n'existe pas
+        return send_from_directory('static', 'default_thumb.jpg')
 
 @app.route('/generate_share_link/<int:video_id>')
 def generate_share_link(video_id):
