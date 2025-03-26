@@ -14,6 +14,9 @@ class User(UserMixin, db.Model):
     can_upload = db.Column(db.Boolean, default=False)
     is_admin = db.Column(db.Boolean, default=False)
     upload_requested = db.Column(db.Boolean, default=False)  # Demande d'upload
+    
+    videos = db.relationship('Video', backref='user', lazy=True)
+    folders = db.relationship('Folder', backref='user', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -23,8 +26,10 @@ class User(UserMixin, db.Model):
 
 class Folder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.now())
+    
     videos = db.relationship('Video', backref='folder', lazy=True)
 
 class Video(db.Model):
@@ -38,6 +43,7 @@ class Video(db.Model):
     is_converted = db.Column(db.Boolean, default=True)
     views = db.Column(db.Integer, default=0)
     folder_id = db.Column(db.Integer, ForeignKey('folder.id'), nullable=True)
+    
     views_relations = db.relationship('VideoView', backref='video', lazy=True)
 
 class VideoView(db.Model):

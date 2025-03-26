@@ -1,50 +1,84 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+<!-- Ajoutez ceci en haut de la page -->
+<div class="mb-6 flex flex-wrap gap-4 items-center">
+    <div class="relative">
+        <form method="POST" action="{{ url_for('create_folder') }}" class="flex">
+            <input type="text" name="name" placeholder="Nom du dossier" required
+                   class="bg-[#2C2C2C] text-white px-4 py-2 rounded-l-lg focus:outline-none">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-lg">
+                Créer
+            </button>
+        </form>
+    </div>
+    
+    <div class="relative">
+        <select onchange="window.location.href=this.value" 
+                class="bg-[#2C2C2C] text-white px-4 py-2 rounded-lg focus:outline-none">
+            <option value="{{ url_for('home') }}">Tous les dossiers</option>
+            {% for folder in current_user.folders %}
+            <option value="{{ url_for('folder_view', folder_id=folder.id) }}" 
+                    {% if selected_folder and selected_folder.id == folder.id %}selected{% endif %}>
+                {{ folder.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<!-- Modifiez la grille de vidéos -->
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
     {% for video in videos %}
-    <div class="group relative bg-[#1E1E1E] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-        <!-- Thumbnail avec lien -->
-        <a href="{{ url_for('video_page', video_id=video.id) }}" class="block relative aspect-video">
-            <img src="{{ url_for('serve_thumbnail', filename=video.filename) }}" 
-                 alt="{{ video.title }}"
-                 class="w-full h-full object-cover">
-            <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-30">
-                <div class="bg-white bg-opacity-20 rounded-full p-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+    <div class="group relative bg-[#1E1E1E] rounded-lg overflow-hidden shadow-lg">
+        <!-- ... (contenu vidéo existant) ... -->
+        
+        <!-- Menu de déplacement -->
+        <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div class="relative">
+                <button onclick="toggleFolderMenu(this)" 
+                        class="bg-black/70 text-white p-1 rounded-full">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"/>
                     </svg>
+                </button>
+                
+                <div id="folderMenu-{{ video.id }}" class="hidden absolute right-0 mt-2 w-48 bg-[#2C2C2C] rounded-md shadow-lg z-10">
+                    <form method="POST" action="{{ url_for('move_video', video_id=video.id) }}" 
+                          class="p-2 space-y-1">
+                        <button type="submit" name="folder_id" value="" 
+                                class="block w-full text-left px-4 py-2 text-sm hover:bg-[#3C3C3C] rounded">
+                            Aucun dossier
+                        </button>
+                        {% for folder in current_user.folders %}
+                        <button type="submit" name="folder_id" value="{{ folder.id }}" 
+                                class="block w-full text-left px-4 py-2 text-sm hover:bg-[#3C3C3C] rounded">
+                            {{ folder.name }}
+                        </button>
+                        {% endfor %}
+                    </form>
                 </div>
             </div>
-        </a>
-        
-        <!-- Titre et bouton Share -->
-        <div class="p-3 flex justify-between items-start">
-            <div class="flex-1 min-w-0 pr-2">
-                <h3 class="text-sm font-medium text-white truncate">{{ video.title or 'Untitled Video' }}</h3>
-                <p class="text-xs text-gray-400 mt-1">{{ video.upload_date.strftime('%b %d, %Y') }}</p>
-            </div>
-            <button onclick="event.stopPropagation(); copyFullShareLink({{ video.id }});" 
-                    class="text-gray-400 hover:text-white focus:outline-none"
-                    title="Share">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-            </button>
         </div>
     </div>
     {% endfor %}
 </div>
 
 <script>
-function copyFullShareLink(videoId) {
-    fetch(`/generate_share_link/${videoId}`)
-        .then(response => response.json())
-        .then(data => {
-            navigator.clipboard.writeText(data.share_link)
-                .then(() => alert('Link copied to clipboard!'))
-                .catch(err => console.error('Error copying:', err));
-        })
-        .catch(err => console.error('Error fetching share link:', err));
+function toggleFolderMenu(button) {
+    event.stopPropagation();
+    const menu = button.nextElementSibling;
+    menu.classList.toggle('hidden');
+    
+    // Fermer les autres menus
+    document.querySelectorAll('#folderMenu-').forEach(otherMenu => {
+        if (otherMenu !== menu && !otherMenu.classList.contains('hidden')) {
+            otherMenu.classList.add('hidden');
+        }
+    });
 }
+
+// Fermer les menus quand on clique ailleurs
+document.addEventListener('click', () => {
+    document.querySelectorAll('#folderMenu-').forEach(menu => {
+        menu.classList.add('hidden');
+    });
+});
 </script>
-{% endblock %}
