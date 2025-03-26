@@ -270,9 +270,8 @@ def serve_thumbnail(filename):
 @login_required
 def generate_share_link(video_id):
     video = Video.query.get_or_404(video_id)
-    # Correction du lien : utiliser l'URL complète
-    share_link = request.host_url.rstrip('/') + url_for('serve_video', filename=video.filename)
-    return share_link
+    share_link = request.host_url.rstrip('/') + url_for('video_page', video_id=video.id)
+    return jsonify({'share_link': share_link})
 
 if __name__ == '__main__':
     with app.app_context():

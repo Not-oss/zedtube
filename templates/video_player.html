@@ -42,8 +42,11 @@
 
 <script>
 function copyLink() {
-    navigator.clipboard.writeText(window.location.href).then(() => {
+    const fullUrl = window.location.href;
+    navigator.clipboard.writeText(fullUrl).then(() => {
         alert('Link copied!');
+    }).catch(err => {
+        console.error('Could not copy text: ', err);
     });
 }
 
