@@ -44,6 +44,7 @@
             <h3 class="text-lg font-semibold text-white mb-2">Demander les droits d'upload</h3>
             <p class="text-gray-400 mb-4">Pour pouvoir uploader des vidéos, vous devez demander l'autorisation à l'administrateur</p>
             <form method="POST" action="{{ url_for('request_upload') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors duration-200">
                     Demander les droits d'upload
                 </button>
@@ -64,6 +65,7 @@
             <h3 class="text-lg font-semibold text-white mb-2">Actions du compte</h3>
             <div class="space-y-2">
                 <form method="POST" action="{{ url_for('logout') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition-colors duration-200">
                         Se déconnecter
                     </button>
