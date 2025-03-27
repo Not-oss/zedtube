@@ -238,7 +238,7 @@ def request_upload():
     current_user.upload_requested = True
     db.session.commit()
     flash('Your upload request has been submitted to admin', 'info')
-    return redirect(url_for('profile'))
+    return redirect(url_for('profile.html'))
 
 # Route admin pour gérer les demandes
 @app.route('/admin/requests')
