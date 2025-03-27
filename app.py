@@ -399,7 +399,7 @@ def delete_video(video_id):
             os.remove(thumb_path)
         
         # Suppression des entrées de visualisation associées
-        VideoView.query.filter_by(video_id=video.id).delete()
+        VideoView.query.filter_by(video_id=video_id).delete()
         
         # Suppression de la vidéo de la base de données
         db.session.delete(video)
