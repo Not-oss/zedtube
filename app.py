@@ -23,7 +23,7 @@ app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024 * 1024  # 1 Go
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['GOOGLE_CLOUD_PROJECT'] = 'dogwood-actor-450221-j9'
-app.config['GOOGLE_CLOUD_BUCKET'] = 'zedtube-videos'  # Remplacer par le nom de votre bucket
+app.config['GOOGLE_CLOUD_BUCKET'] = 'zedfr69'  # Nom correct du bucket
 
 # Ensure uploads directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
