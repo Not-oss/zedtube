@@ -62,7 +62,8 @@ def create_transcode_job(input_uri, output_uri, project_id, video_info, location
                 {
                     "key": "video-stream0",
                     "video_stream": {
-                        "h264": {
+                        "codec": "h264",
+                        "h264_settings": {
                             "bitrate_bps": video_info['bitrate'],
                             "frame_rate": video_info['fps'],
                             "height_pixels": video_info['height'],
@@ -73,10 +74,10 @@ def create_transcode_job(input_uri, output_uri, project_id, video_info, location
                 {
                     "key": "audio-stream0",
                     "audio_stream": {
-                        "aac": {
+                        "codec": "aac",
+                        "aac_settings": {
                             "bitrate_bps": video_info['audio_bitrate'],
-                            "sample_rate_hertz": video_info['audio_sample_rate'],
-                            "channel_count": video_info['audio_channels'],
+                            "sample_rate_hertz": video_info['audio_sample_rate']
                         }
                     }
                 }
@@ -133,7 +134,7 @@ def process_video_with_transcode(input_file_path, output_file_path, project_id, 
         output_uri = f"gs://{bucket_name}/{output_blob_name}"
         
         # Create transcoding job with original video info
-        job_name = os.path.basename(job_name) if 'job_name' in locals() else f"job-{int(time.time())}"
+        job_name = f"job-{int(time.time())}"
         create_job_response = create_transcode_job(input_uri, output_uri, project_id, video_info, location)
         
         # Wait for job completion
