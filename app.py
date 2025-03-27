@@ -11,6 +11,7 @@ import os
 import sys
 import traceback
 import hashlib
+import re
 
 
 app = Flask(__name__)
@@ -47,29 +48,21 @@ def home():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
         
-        # Debug print
-        print(f"Login attempt: Username = {username}")
-        
         user = User.query.filter_by(username=username).first()
         
-        if user:
-            # Debug print
-            print(f"User found: {user.username}")
-            
-            if user.check_password(password):
-                login_user(user)
-                print(f"Login successful for {username}")
-                return redirect(url_for('home'))
-            else:
-                print(f"Password incorrect for {username}")
-                flash('Mot de passe incorrect', 'error')
+        if user and user.check_password(password):
+            login_user(user)
+            flash('Connexion réussie !', 'success')
+            return redirect(url_for('home'))
         else:
-            print(f"No user found with username {username}")
-            flash('Utilisateur non trouvé', 'error')
+            flash('Nom d\'utilisateur ou mot de passe incorrect', 'error')
     
     return render_template('login.html')
 
@@ -215,17 +208,28 @@ def register():
         password = request.form['password']
         
         if not username or not password:
-            flash('Username and password are required', 'error')
+            flash('Le nom d\'utilisateur et le mot de passe sont requis', 'error')
+            return redirect(url_for('register'))
+        
+        if len(username) < 3 or len(username) > 20:
+            flash('Le nom d\'utilisateur doit contenir entre 3 et 20 caractères', 'error')
+            return redirect(url_for('register'))
+        
+        if not re.match(r'^[a-zA-Z0-9_-]+$', username):
+            flash('Le nom d\'utilisateur ne peut contenir que des lettres, chiffres, _ et -', 'error')
+            return redirect(url_for('register'))
+        
+        if len(password) < 8:
+            flash('Le mot de passe doit contenir au moins 8 caractères', 'error')
             return redirect(url_for('register'))
         
         if User.query.filter_by(username=username).first():
-            flash('Username already exists', 'error')
+            flash('Ce nom d\'utilisateur est déjà utilisé', 'error')
             return redirect(url_for('register'))
         
-        # Création du user avec droit d'upload par défaut (à modifier plus tard)
         new_user = User(
             username=username,
-            can_upload=True,  # Temporairement activé pour tous
+            can_upload=False,
             is_admin=False,
             upload_requested=False
         )
@@ -234,10 +238,62 @@ def register():
         db.session.add(new_user)
         db.session.commit()
         
-        flash('Registration successful! You can now upload videos.', 'success')
+        flash('Inscription réussie ! Vous pouvez maintenant vous connecter.', 'success')
         return redirect(url_for('login'))
     
     return render_template('register.html')
+
+@app.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html')
+
+@app.route('/add_user', methods=['GET', 'POST'])
+def add_user():
+    if request.method == 'POST':
+        admin_username = request.form['admin_username']
+        admin_password = request.form['admin_password']
+        username = request.form['username']
+        password = request.form['password']
+        
+        # Vérification des identifiants admin
+        admin = User.query.filter_by(username=admin_username).first()
+        if not admin or not admin.is_admin or not admin.check_password(admin_password):
+            flash('Identifiants administrateur incorrects', 'error')
+            return redirect(url_for('add_user'))
+        
+        # Validation du nouveau nom d'utilisateur
+        if len(username) < 3 or len(username) > 20:
+            flash('Le nom d\'utilisateur doit contenir entre 3 et 20 caractères', 'error')
+            return redirect(url_for('add_user'))
+        
+        if not re.match(r'^[a-zA-Z0-9_-]+$', username):
+            flash('Le nom d\'utilisateur ne peut contenir que des lettres, chiffres, _ et -', 'error')
+            return redirect(url_for('add_user'))
+        
+        if len(password) < 8:
+            flash('Le mot de passe doit contenir au moins 8 caractères', 'error')
+            return redirect(url_for('add_user'))
+        
+        if User.query.filter_by(username=username).first():
+            flash('Ce nom d\'utilisateur est déjà utilisé', 'error')
+            return redirect(url_for('add_user'))
+        
+        new_user = User(
+            username=username,
+            can_upload=False,
+            is_admin=False,
+            upload_requested=False
+        )
+        new_user.set_password(password)
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Utilisateur créé avec succès', 'success')
+        return redirect(url_for('admin_panel'))
+    
+    return render_template('add_user.html')
 
 # Route pour demander les droits d'upload
 @app.route('/request_upload', methods=['POST'])
