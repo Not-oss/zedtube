@@ -451,7 +451,7 @@ def upload_video():
             db.session.commit()
             
             if request.form.get('convert', 'true').lower() == 'true':
-                process_video(filename)
+                process_video(filename, app.config['UPLOAD_FOLDER'])
             
             flash('Vidéo uploadée avec succès', 'success')
             return redirect(url_for('home'))
