@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <html prefix="og: https://ogp.me/ns#">
 <head>
-    <title>Vidéo ZedTube</title>
-    <meta property="og:title" content="Vidéo ZedTube" />
-    <meta property="og:type" content="video.other" />
-    <meta property="og:video:url" content="{{ request.host_url }}{{ url_for('serve_video', filename=video.filename)[1:] }}" />
-    <meta property="og:video:secure_url" content="{{ request.host_url }}{{ url_for('serve_video', filename=video.filename)[1:] }}" />
-    <meta property="og:video:type" content="video/mp4" />
-    <meta property="og:image" content="{{ request.host_url }}{{ url_for('serve_thumbnail', filename=video.filename)[1:] }}" />
-    <meta property="og:image:type" content="image/jpeg" />
+    <meta charset="UTF-8">
+    <meta property="og:title" content="{{ video.title or 'ZedTube Video' }}" />
+    <meta property="og:description" content="Regardez cette vidéo sur ZedTube" />
+    <meta property="og:image" content="{{ thumbnail_url }}" />
+    <meta property="og:type" content="video.other">
+    <meta property="og:video:url" content="{{ video_url }}" />
+    <meta property="og:video:type" content="video/mp4">
+    <meta property="og:video:width" content="{{ video_width }}">
+    <meta property="og:video:height" content="{{ video_height }}">
     <meta name="twitter:card" content="player">
-    <meta name="twitter:player" content="{{ request.host_url }}{{ url_for('serve_video', filename=video.filename)[1:] }}">
+    <meta name="twitter:player" content="{{ video_url }}">
+    <meta name="twitter:player:width" content="{{ video_width }}">
+    <meta name="twitter:player:height" content="{{ video_height }}">
+    <meta name="twitter:image" content="{{ thumbnail_url }}">
+    <title>ZedTube - {{ video.title or 'Untitled Video' }}</title>
 </head>
 <body>
-    <h1>Vidéo ZedTube</h1>
-    <video controls>
-        <source src="{{ url_for('serve_video', filename=video.filename) }}" type="video/mp4">
-    </video>
+    <script>
+        window.location.href = "{{ original_url }}";
+    </script>
 </body>
 </html>

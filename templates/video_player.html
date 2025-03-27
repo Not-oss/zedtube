@@ -57,22 +57,12 @@
 </div>
 
 <script>
-    function copyPageLink() {
-        // Utilisez la variable template Jinja directement
-        const videoId = {{ video.id }};
-        
-        fetch(`/generate_share_link/${videoId}`)
-            .then(response => response.json())
-            .then(data => {
-                navigator.clipboard.writeText(data.share_link)
-                    .then(() => alert('Lien de partage copié !'))
-                    .catch(() => prompt('Copiez ce lien :', data.share_link));
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Erreur lors de la génération du lien');
-            });
-    }
+function copyPageLink() {
+    const embedLink = "{{ url_for('discord_embed', video_id=video.id, _external=True) }}";
+    navigator.clipboard.writeText(embedLink)
+        .then(() => alert('Lien Discord copié !'))
+        .catch(() => prompt('Copiez ce lien pour Discord :', embedLink));
+}
     
     function copyDirectLink() {
         const directLink = "{{ url_for('serve_video', filename=video.filename, _external=True) }}";

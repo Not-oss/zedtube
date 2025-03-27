@@ -206,7 +206,6 @@ def register():
         username = request.form['username']
         password = request.form['password']
         
-        # Validation simple
         if not username or not password:
             flash('Username and password are required', 'error')
             return redirect(url_for('register'))
@@ -215,30 +214,31 @@ def register():
             flash('Username already exists', 'error')
             return redirect(url_for('register'))
         
-        # Création du user
-        new_user = User(username=username)
+        # Création du user avec droit d'upload par défaut (à modifier plus tard)
+        new_user = User(
+            username=username,
+            can_upload=True,  # Temporairement activé pour tous
+            is_admin=False,
+            upload_requested=False
+        )
         new_user.set_password(password)
-        
-        # Par défaut, les nouveaux users ne peuvent pas upload
-        new_user.can_upload = False
-        new_user.is_admin = False
         
         db.session.add(new_user)
         db.session.commit()
         
-        flash('Registration successful! Please login.', 'success')
+        flash('Registration successful! You can now upload videos.', 'success')
         return redirect(url_for('login'))
     
     return render_template('register.html')
 
 # Route pour demander les droits d'upload
-@app.route('/request_upload', methods=['GET', 'POST'])
+@app.route('/request_upload', methods=['POST'])
 @login_required
 def request_upload():
     current_user.upload_requested = True
     db.session.commit()
     flash('Your upload request has been submitted to admin', 'info')
-    return redirect(url_for('profile.html'))
+    return redirect(url_for('profile'))
 
 # Route admin pour gérer les demandes
 @app.route('/admin/requests')
@@ -310,22 +310,31 @@ def delete_video(video_id):
         abort(403)
 
     try:
-        # Chemins des fichiers à supprimer
+        # Suppression du fichier vidéo principal
         video_path = os.path.join(app.config['UPLOAD_FOLDER'], video.filename)
-        thumb_path = os.path.join(app.config['UPLOAD_FOLDER'], 
-                                f"{os.path.splitext(video.filename)[0]}_thumb.jpg")
-
-        # Suppression physique des fichiers
         if os.path.exists(video_path):
             os.remove(video_path)
+        
+        # Suppression de la version convertie si elle existe
+        if video.processed_path and video.processed_path != video.filename:
+            processed_path = os.path.join(app.config['UPLOAD_FOLDER'], video.processed_path)
+            if os.path.exists(processed_path):
+                os.remove(processed_path)
+        
+        # Suppression de la thumbnail
+        thumb_path = os.path.join(app.config['UPLOAD_FOLDER'], 
+                                f"{os.path.splitext(video.filename)[0]}_thumb.jpg")
         if os.path.exists(thumb_path):
             os.remove(thumb_path)
-
-        # Suppression de la base de données
+        
+        # Suppression des entrées de visualisation associées
+        VideoView.query.filter_by(video_id=video.id).delete()
+        
+        # Suppression de la vidéo de la base de données
         db.session.delete(video)
         db.session.commit()
-
-        flash('Vidéo supprimée avec succès', 'success')
+        
+        flash('Vidéo et tous ses fichiers associés supprimés avec succès', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur lors de la suppression : {str(e)}', 'error')
@@ -391,6 +400,29 @@ def upload_video():
         app.logger.error(f"Erreur lors de l'upload: {str(e)}")
         return jsonify({'error': f'Erreur: {str(e)}'}), 500
 
+
+@app.route('/embed/<int:video_id>')
+def discord_embed(video_id):
+    video = Video.query.get_or_404(video_id)
+    
+    # Récupération des métadonnées vidéo
+    try:
+        probe = ffmpeg.probe(os.path.join(app.config['UPLOAD_FOLDER'], video.filename))
+        video_stream = next(s for s in probe['streams'] if s['codec_type'] == 'video')
+        width = int(video_stream.get('width', 1920))
+        height = int(video_stream.get('height', 1080))
+    except:
+        width, height = 1920, 1080
+    
+    return render_template('discord_embed.html',
+        video=video,
+        video_url=url_for('serve_video', filename=video.filename, _external=True),
+        thumbnail_url=url_for('serve_thumbnail', filename=video.filename, _external=True),
+        original_url=url_for('video_page', video_id=video_id, _external=True),
+        video_width=width,
+        video_height=height
+    )
+
 @app.route('/video/<filename>')
 def serve_video(filename):
     video = Video.query.filter_by(filename=filename).first()
@@ -399,38 +431,8 @@ def serve_video(filename):
     
     user_agent = request.headers.get('User-Agent', '').lower()
     
-    # Improved Discord bot detection
-    if any(bot in user_agent for bot in ['discordbot', 'discord', 'telegrambot']):
-        thumbnail_url = request.host_url.rstrip('/') + url_for('serve_thumbnail', filename=filename)
-        video_url = request.host_url.rstrip('/') + url_for('serve_video', filename=filename)[1:]
-        
-        return f'''
-        <!DOCTYPE html>
-        <html prefix="og: https://ogp.me/ns#">
-        <head>
-            <title>ZedTube Vidéo</title>
-            <meta property="og:title" content="{video.title or 'Vidéo ZedTube'}" />
-            <meta property="og:type" content="video.other" />
-            <meta property="og:video" content="{video_url}" />
-            <meta property="og:video:type" content="video/mp4" />
-            <meta property="og:video:width" content="640" />
-            <meta property="og:video:height" content="360" />
-            <meta property="og:image" content="{thumbnail_url}" />
-            <meta property="og:image:type" content="image/jpeg" />
-            <meta name="twitter:card" content="player" />
-            <meta name="twitter:player" content="{video_url}" />
-            <meta name="twitter:player:width" content="640" />
-            <meta name="twitter:player:height" content="360" />
-            <meta name="twitter:image" content="{thumbnail_url}" />
-        </head>
-        <body>
-            <video width="100%" controls autoplay>
-                <source src="{video_url}" type="video/mp4">
-                Votre navigateur ne supporte pas la vidéo.
-            </video>
-        </body>
-        </html>
-        '''
+    if 'discord' in user_agent:
+        return redirect(url_for('discord_embed', video_id=video.id))
     
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 @app.route('/thumbnail/<filename>')
