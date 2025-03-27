@@ -3,11 +3,12 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from flask_wtf.csrf import CSRFProtect
 from functools import wraps
 from urllib.parse import quote
-import ffmpeg
+
 from werkzeug.utils import secure_filename
 from models import db, User, Video, VideoView, Folder  # Ajoutez Folder ici
 from datetime import datetime
 from utils import process_video
+from transcoder import process_video_with_transcode
 import os
 import sys
 import traceback
@@ -21,17 +22,11 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///youtube_clone.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024 * 1024  # 1 Go
 app.config['WTF_CSRF_ENABLED'] = True
+app.config['GOOGLE_CLOUD_PROJECT'] = 'dogwood-actor-450221-j9'
+app.config['GOOGLE_CLOUD_BUCKET'] = 'zedtube-videos'  # Remplacer par le nom de votre bucket
 
 # Ensure uploads directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs('static', exist_ok=True)  # Créer le dossier static s'il n'existe pas
-
-# Liste des extensions de fichiers autorisées
-ALLOWED_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'webm'}
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 db.init_app(app)
 csrf = CSRFProtect(app)
@@ -366,10 +361,13 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 @app.route('/admin/panel')
-@admin_required
+@login_required
 def admin_panel():
+    if not current_user.is_admin:
+        abort(403)  # Forbidden
+    
     videos = Video.query.order_by(Video.upload_date.desc()).all()
-    users = User.query.order_by(User.username).all()
+    users = User.query.all()
     return render_template('admin_panel.html', videos=videos, users=users)
 
 @app.route('/delete_video/<int:video_id>', methods=['POST'])
@@ -400,7 +398,7 @@ def delete_video(video_id):
             os.remove(thumb_path)
         
         # Suppression des entrées de visualisation associées
-        VideoView.query.filter_by(video_id=video_id).delete()
+        VideoView.query.filter_by(video_id=video.id).delete()
         
         # Suppression de la vidéo de la base de données
         db.session.delete(video)
@@ -438,7 +436,8 @@ def upload_video():
         
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
             
             new_video = Video(
                 filename=filename,
@@ -452,7 +451,22 @@ def upload_video():
             db.session.commit()
             
             if request.form.get('convert', 'true').lower() == 'true':
-                process_video(filename, app.config['UPLOAD_FOLDER'])
+                # Utiliser Google Cloud Transcode pour la conversion
+                output_filename = f"converted_{filename}"
+                output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+                
+                if process_video_with_transcode(
+                    file_path,
+                    output_path,
+                    app.config['GOOGLE_CLOUD_PROJECT'],
+                    app.config['GOOGLE_CLOUD_BUCKET']
+                ):
+                    # Mettre à jour le nom du fichier dans la base de données
+                    new_video.filename = output_filename
+                    db.session.commit()
+                    flash('Vidéo convertie avec succès', 'success')
+                else:
+                    flash('Erreur lors de la conversion de la vidéo', 'error')
             
             flash('Vidéo uploadée avec succès', 'success')
             return redirect(url_for('home'))
@@ -507,10 +521,6 @@ def serve_thumbnail(filename):
         if not os.path.exists(thumbnail_path):
             # Regénérer la thumbnail si manquante
             video_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            if not os.path.exists(video_path):
-                app.logger.error(f"Vidéo non trouvée: {video_path}")
-                return send_from_directory('static', 'default_thumb.jpg')
-            
             try:
                 (
                     ffmpeg
@@ -519,16 +529,13 @@ def serve_thumbnail(filename):
                     .overwrite_output()
                     .run(capture_stdout=True, capture_stderr=True)
                 )
-            except ffmpeg.Error as e:
-                app.logger.error(f"Erreur ffmpeg: {e.stderr.decode() if e.stderr else str(e)}")
-                return send_from_directory('static', 'default_thumb.jpg')
             except Exception as e:
-                app.logger.error(f"Erreur regénération thumbnail: {str(e)}")
+                print(f"Erreur regénération thumbnail: {e}")
                 return send_from_directory('static', 'default_thumb.jpg')
         
         return send_from_directory(app.config['UPLOAD_FOLDER'], thumbnail_filename)
     except Exception as e:
-        app.logger.error(f"Erreur thumbnail: {str(e)}")
+        print(f"Erreur thumbnail: {e}")
         return send_from_directory('static', 'default_thumb.jpg')
 
 # Upload thumbnail de dossier
@@ -586,50 +593,15 @@ def toggle_folder_privacy(folder_id):
     db.session.commit()
     return jsonify({'status': 'success', 'is_public': folder.is_public})
 
-@app.route('/admin/approve_upload_request/<int:user_id>', methods=['POST'])
-@admin_required
-def approve_upload_request(user_id):
-    user = User.query.get_or_404(user_id)
-    user.can_upload = True
-    user.upload_requested = False
-    user.upload_requested_date = None
-    db.session.commit()
-    flash(f'Droits d\'upload accordés à {user.username}', 'success')
-    return redirect(url_for('admin_panel'))
-
-@app.route('/admin/reject_upload_request/<int:user_id>', methods=['POST'])
-@admin_required
-def reject_upload_request(user_id):
-    user = User.query.get_or_404(user_id)
-    user.upload_requested = False
-    user.upload_requested_date = None
-    db.session.commit()
-    flash(f'Demande d\'upload rejetée pour {user.username}', 'success')
-    return redirect(url_for('admin_panel'))
-
-@app.route('/admin/toggle_upload_rights/<int:user_id>', methods=['POST'])
-@admin_required
-def toggle_upload_rights(user_id):
-    user = User.query.get_or_404(user_id)
-    user.can_upload = not user.can_upload
-    user.upload_requested = False
-    user.upload_requested_date = None
-    db.session.commit()
-    flash(f'Droits d\'upload {"accordés" if user.can_upload else "retirés"} à {user.username}', 'success')
-    return redirect(url_for('admin_panel'))
-
 
 if __name__ == '__main__':
     with app.app_context():
         try:
-            # Vérifier si la base de données existe
-            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'youtube_clone.db')
-            if not os.path.exists(db_path):
-                # Créer la base de données et les tables
-                db.create_all()
-                print("Base de données initialisée avec succès")
-            else:
-                print("Base de données existante détectée")
+            # Suppression de toutes les tables
+            db.drop_all()
+            # Recréation de toutes les tables
+            db.create_all()
+            print("Base de données initialisée avec succès")
         except Exception as e:
             print("Erreur lors de l'initialisation de la base de données:", str(e))
             traceback.print_exc()

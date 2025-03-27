@@ -2,51 +2,7 @@
 {% block content %}
 <div class="container mx-auto space-y-6">
     <div class="bg-[#1E1E1E] rounded-lg p-6">
-        <h2 class="text-2xl font-bold mb-4 text-white">Gestion des demandes d'upload</h2>
-        
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-[#2C2C2C] text-gray-400">
-                    <tr>
-                        <th class="p-3 text-left">Utilisateur</th>
-                        <th class="p-3 text-left">Date de la demande</th>
-                        <th class="p-3 text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users if user.upload_requested %}
-                    <tr class="border-b border-[#2C2C2C]">
-                        <td class="p-3">{{ user.username }}</td>
-                        <td class="p-3">{{ user.upload_requested_date.strftime('%d/%m/%Y %H:%M') if user.upload_requested_date else 'Non demandé' }}</td>
-                        <td class="p-3 text-center space-x-2">
-                            <form method="POST" action="{{ url_for('approve_upload_request', user_id=user.id) }}" class="inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition">
-                                    Accepter
-                                </button>
-                            </form>
-                            <form method="POST" action="{{ url_for('reject_upload_request', user_id=user.id) }}" class="inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition">
-                                    Rejeter
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="3" class="p-3 text-center text-gray-400">
-                            Aucune demande d'upload en attente
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="bg-[#1E1E1E] rounded-lg p-6">
-        <h2 class="text-2xl font-bold mb-4 text-white">Gestion des vidéos</h2>
+        <h2 class="text-2xl font-bold mb-4 text-white">Video Management</h2>
         
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {% for video in videos %}
@@ -60,15 +16,14 @@
                 
                 <div class="p-3 flex justify-between items-center">
                     <div>
-                        <h3 class="text-sm font-medium mb-2 truncate">{{ video.title or 'Vidéo sans titre' }}</h3>
-                        <span class="text-xs text-gray-400">{{ video.upload_date.strftime('%d/%m/%Y') }}</span>
+                        <h3 class="text-sm font-medium mb-2 truncate">{{ video.title or 'Untitled Video' }}</h3>
+                        <span class="text-xs text-gray-400">{{ video.upload_date.strftime('%b %d, %Y') }}</span>
                     </div>
                     
                     <form method="POST" action="{{ url_for('delete_video', video_id=video.id) }}"
-                          onsubmit="return confirm('Supprimer cette vidéo définitivement ?');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          onsubmit="return confirm('Delete this video permanently?');">
                         <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-full text-xs transition">
-                            Supprimer
+                            Delete
                         </button>
                     </form>
                 </div>
@@ -78,45 +33,34 @@
     </div>
 
     <div class="bg-[#1E1E1E] rounded-lg p-6">
-        <h2 class="text-2xl font-bold mb-4 text-white">Gestion des utilisateurs</h2>
+        <h2 class="text-2xl font-bold mb-4 text-white">User Management</h2>
         
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-[#2C2C2C] text-gray-400">
-                    <tr>
-                        <th class="p-3 text-left">Nom d'utilisateur</th>
-                        <th class="p-3 text-center">Droits d'upload</th>
-                        <th class="p-3 text-center">Admin</th>
-                        <th class="p-3 text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr class="border-b border-[#2C2C2C]">
-                        <td class="p-3">{{ user.username }}</td>
-                        <td class="p-3 text-center">
-                            <span class="px-2 py-1 rounded-full text-xs {{ 'bg-green-600 text-white' if user.can_upload else 'bg-red-600 text-white' }}">
-                                {{ 'Oui' if user.can_upload else 'Non' }}
-                            </span>
-                        </td>
-                        <td class="p-3 text-center">
-                            <span class="px-2 py-1 rounded-full text-xs {{ 'bg-green-600 text-white' if user.is_admin else 'bg-red-600 text-white' }}">
-                                {{ 'Oui' if user.is_admin else 'Non' }}
-                            </span>
-                        </td>
-                        <td class="p-3 text-center">
-                            <form method="POST" action="{{ url_for('toggle_upload_rights', user_id=user.id) }}" class="inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition">
-                                    {{ 'Retirer' if user.can_upload else 'Donner' }} les droits
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <table class="w-full">
+            <thead class="bg-[#2C2C2C] text-gray-400">
+                <tr>
+                    <th class="p-3 text-left">Username</th>
+                    <th class="p-3 text-center">Can Upload</th>
+                    <th class="p-3 text-center">Admin</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr class="border-b border-[#2C2C2C]">
+                    <td class="p-3">{{ user.username }}</td>
+                    <td class="p-3 text-center">
+                        <span class="px-2 py-1 rounded-full text-xs {{ 'bg-green-600 text-white' if user.can_upload else 'bg-red-600 text-white' }}">
+                            {{ 'Yes' if user.can_upload else 'No' }}
+                        </span>
+                    </td>
+                    <td class="p-3 text-center">
+                        <span class="px-2 py-1 rounded-full text-xs {{ 'bg-green-600 text-white' if user.is_admin else 'bg-red-600 text-white' }}">
+                            {{ 'Yes' if user.is_admin else 'No' }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

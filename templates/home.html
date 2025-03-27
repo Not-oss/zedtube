@@ -7,7 +7,6 @@
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-2xl font-bold text-white">Vos Dossiers</h2>
             <form method="POST" action="{{ url_for('create_folder') }}" class="flex items-center">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="text" name="name" placeholder="Nom du dossier" required
                        class="bg-[#2C2C2C] text-white px-4 py-2 rounded-l-lg focus:outline-none">
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-lg">
@@ -53,7 +52,6 @@
                     
                     <form method="POST" action="{{ url_for('delete_folder', folder_id=folder.id) }}"
                           data-action="delete">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" 
                                 class="bg-black/70 hover:bg-red-600 text-white p-1.5 rounded-full"
                                 onclick="return confirm('Supprimer ce dossier et TOUTES ses vidéos?');">
@@ -113,7 +111,6 @@
                         {% if current_user.is_authenticated and (video.user_id == current_user.id or current_user.is_admin) %}
                         <form method="POST" action="{{ url_for('delete_video', video_id=video.id) }}"
                               data-action="delete-video">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" 
                                     class="text-gray-400 hover:text-red-500"
                                     onclick="return confirm('Supprimer cette vidéo définitivement?');">
