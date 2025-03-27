@@ -53,9 +53,21 @@
 
     <div id="uploadProgress" class="hidden mt-6 space-y-4">
         <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-            <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+            <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
         </div>
-        <p id="progressStatus" class="text-sm dark:text-white">Préparation de l'upload...</p>
+        <div class="flex justify-between items-center">
+            <p id="progressStatus" class="text-sm dark:text-white">Préparation de l'upload...</p>
+            <p id="progressPercentage" class="text-sm dark:text-white">0%</p>
+        </div>
+        <div id="conversionStatus" class="hidden">
+            <div class="flex items-center space-x-2 text-yellow-400">
+                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Conversion en cours...</span>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -66,6 +78,8 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
     const formData = new FormData(this);
     const progressBar = document.getElementById('progressBar');
     const progressStatus = document.getElementById('progressStatus');
+    const progressPercentage = document.getElementById('progressPercentage');
+    const conversionStatus = document.getElementById('conversionStatus');
     const uploadForm = document.getElementById('uploadForm');
     const uploadProgress = document.getElementById('uploadProgress');
     
@@ -78,16 +92,24 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
         if (e.lengthComputable) {
             const percentComplete = (e.loaded / e.total) * 100;
             progressBar.style.width = percentComplete + '%';
-            progressStatus.textContent = 'Upload en cours: ' + Math.round(percentComplete) + '%';
+            progressPercentage.textContent = Math.round(percentComplete) + '%';
+            progressStatus.textContent = 'Upload en cours';
         }
     };
     
     xhr.onload = function() {
         if (xhr.status === 200) {
-            progressStatus.textContent = 'Upload terminé! Redirection...';
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1500);
+            if (formData.get('convert') === 'true') {
+                progressStatus.textContent = 'Conversion en cours...';
+                conversionStatus.classList.remove('hidden');
+                progressBar.style.width = '100%';
+                progressPercentage.textContent = '100%';
+            } else {
+                progressStatus.textContent = 'Upload terminé! Redirection...';
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1500);
+            }
         } else {
             progressStatus.textContent = 'Erreur lors de l\'upload';
             console.error(xhr.responseText);

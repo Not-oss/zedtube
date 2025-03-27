@@ -490,22 +490,38 @@ def upload_video():
             db.session.commit()
             
             if request.form.get('convert', 'true').lower() == 'true':
-                # Utiliser Google Cloud Transcode pour la conversion
-                output_filename = f"converted_{filename}"
-                output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
-                
-                if process_video_with_transcode(
-                    file_path,
-                    output_path,
-                    app.config['GOOGLE_CLOUD_PROJECT'],
-                    app.config['GOOGLE_CLOUD_BUCKET']
-                ):
-                    # Mettre à jour le nom du fichier dans la base de données
-                    new_video.filename = output_filename
-                    db.session.commit()
-                    flash('Vidéo convertie avec succès', 'success')
-                else:
-                    flash('Erreur lors de la conversion de la vidéo', 'error')
+                try:
+                    # Utiliser Google Cloud Transcode pour la conversion
+                    output_filename = f"converted_{filename}"
+                    output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+                    
+                    # Démarrer le transcodage
+                    if process_video_with_transcode(
+                        file_path,
+                        output_path,
+                        app.config['GOOGLE_CLOUD_PROJECT'],
+                        app.config['GOOGLE_CLOUD_BUCKET']
+                    ):
+                        # Vérifier que le fichier converti existe
+                        if os.path.exists(output_path):
+                            # Supprimer le fichier original
+                            try:
+                                os.remove(file_path)
+                            except Exception as e:
+                                app.logger.error(f"Erreur lors de la suppression du fichier original: {e}")
+                            
+                            # Mettre à jour le nom du fichier dans la base de données
+                            new_video.filename = output_filename
+                            new_video.is_converted = True
+                            db.session.commit()
+                            flash('Vidéo convertie avec succès', 'success')
+                        else:
+                            flash('Erreur : Le fichier converti n\'a pas été généré', 'error')
+                    else:
+                        flash('Erreur lors de la conversion de la vidéo', 'error')
+                except Exception as e:
+                    app.logger.error(f"Erreur lors du transcodage: {str(e)}")
+                    flash(f'Erreur lors de la conversion : {str(e)}', 'error')
             
             flash('Vidéo uploadée avec succès', 'success')
             return redirect(url_for('home'))
