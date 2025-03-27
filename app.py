@@ -101,7 +101,7 @@ def admin_required(f):
     return decorated_function
 
 
-# Créer un dossier
+## Création de dossier
 @app.route('/create_folder', methods=['POST'])
 @login_required
 def create_folder():
@@ -113,13 +113,40 @@ def create_folder():
         flash('Le nom du dossier est requis', 'error')
         return redirect(url_for('home'))
 
-    new_folder = Folder(name=name, user_id=current_user.id)
+    new_folder = Folder(
+        name=name, 
+        user_id=current_user.id
+    )
     db.session.add(new_folder)
     db.session.commit()
     
     flash(f'Dossier "{name}" créé avec succès', 'success')
     return redirect(url_for('home'))
 
+# Suppression de dossier
+@app.route('/delete_folder/<int:folder_id>', methods=['POST'])
+@login_required
+def delete_folder(folder_id):
+    folder = Folder.query.get_or_404(folder_id)
+    if folder.user_id != current_user.id and not current_user.is_admin:
+        abort(403)
+    
+    # Réaffecter les vidéos à aucun dossier
+    Video.query.filter_by(folder_id=folder.id).update({'folder_id': None})
+    
+    db.session.delete(folder)
+    db.session.commit()
+    
+    flash('Dossier supprimé avec succès', 'success')
+    return redirect(url_for('home'))
+
+# Vue d'un dossier spécifique
+@app.route('/folder/<int:folder_id>')
+@login_required
+def folder_view(folder_id):
+    folder = Folder.query.get_or_404(folder_id)
+    videos = Video.query.filter_by(folder_id=folder.id).order_by(Video.upload_date.desc()).all()
+    return render_template('home.html', videos=videos, selected_folder=folder)
 # Déplacer une vidéo
 @app.route('/move_video/<int:video_id>', methods=['POST'])
 @login_required

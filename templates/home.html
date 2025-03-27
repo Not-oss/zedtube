@@ -1,56 +1,104 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mx-auto px-4 py-6">
-    <!-- Barre de création et sélection de dossiers -->
-    {% if current_user.is_authenticated and current_user.can_upload %}
-    <div class="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        <!-- Formulaire de création de dossier -->
-        <form method="POST" action="{{ url_for('create_folder') }}" class="flex flex-1 w-full sm:w-auto">
-            <input type="text" name="name" placeholder="Nom du dossier (ex: Zed)" required
-                   class="flex-1 bg-[#2C2C2C] text-white px-4 py-2 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-lg transition">
-                Créer
-            </button>
-        </form>
+    <!-- Section Dossiers -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-white">Vos Dossiers</h2>
+            {% if current_user.is_authenticated and current_user.can_upload %}
+            <form method="POST" action="{{ url_for('create_folder') }}" class="relative">
+                <input type="text" name="name" placeholder="Nom du dossier" required
+                       class="bg-[#2C2C2C] text-white px-4 py-2 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                </button>
+            </form>
+            {% endif %}
+        </div>
 
-        <!-- Sélecteur de dossier -->
-        <div class="relative flex-1 w-full sm:w-auto">
-            <select onchange="window.location.href=this.value" 
-                    class="w-full bg-[#2C2C2C] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="{{ url_for('home') }}">Toutes les vidéos</option>
-                {% for folder in current_user.folders|sort(attribute='name') %}
-                <option value="{{ url_for('folder_view', folder_id=folder.id) }}" 
-                        {% if selected_folder and selected_folder.id == folder.id %}selected{% endif %}>
-                    {{ folder.name }} ({{ folder.videos|length }})
-                </option>
-                {% endfor %}
-            </select>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <!-- Dossiers existants -->
+            {% for folder in current_user.created_folders|sort(attribute='name') %}
+            <div class="group relative aspect-video bg-[#1E1E1E] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all folder-card">
+                <a href="{{ url_for('folder_view', folder_id=folder.id) }}" class="block h-full">
+                    <!-- Miniature du dossier -->
+                    {% if folder.videos %}
+                    <img src="{{ url_for('serve_thumbnail', filename=folder.videos[0].filename) }}" 
+                         alt="{{ folder.name }}"
+                         class="w-full h-full object-cover group-hover:opacity-75 transition-opacity duration-300 folder-thumbnail">
+                    {% else %}
+                    <div class="w-full h-full bg-gradient-to-br from-[#3C3C3C] to-[#1E1E1E] flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                    </div>
+                    {% endif %}
+
+                    <!-- Overlay avec infos -->
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent p-3 flex flex-col justify-end folder-overlay">
+                        <h3 class="text-white font-medium truncate">{{ folder.name }}</h3>
+                        <p class="text-xs text-gray-300 mt-1">
+                            {{ folder.videos|length }} vidéo{{ 's' if folder.videos|length > 1 else '' }}
+                        </p>
+                    </div>
+                </a>
+
+                <!-- Menu contextuel -->
+                {% if current_user.id == folder.user_id or current_user.is_admin %}
+                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button onclick="event.preventDefault(); toggleFolderMenu('{{ folder.id }}')"
+                            class="bg-black/70 hover:bg-black text-white p-1.5 rounded-full transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        </svg>
+                    </button>
+
+                    <div id="folderMenu-{{ folder.id }}" class="hidden absolute right-0 mt-2 w-48 bg-[#2C2C2C] rounded-md shadow-lg z-10 border border-[#3C3C3C]">
+                        <form method="POST" action="{{ url_for('delete_folder', folder_id=folder.id) }}" class="py-1">
+                            <button type="submit" 
+                                    class="w-full text-left px-4 py-2 text-sm hover:bg-[#3C3C3C] text-red-400 flex items-center"
+                                    onclick="return confirm('Supprimer ce dossier ? Les vidéos ne seront pas supprimées.')">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Supprimer
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
         </div>
     </div>
-    {% endif %}
 
-    <!-- Titre du dossier sélectionné -->
-    {% if selected_folder %}
-    <div class="mb-6 flex items-center justify-between">
+    <!-- Section Vidéos -->
+    <div class="mb-4 flex justify-between items-center">
         <h2 class="text-2xl font-bold text-white">
-            Dossier : {{ selected_folder.name }}
-            <span class="text-sm font-normal text-gray-400 ml-2">
-                ({{ videos|length }} vidéo{{ 's' if videos|length > 1 else '' }})
-            </span>
+            {% if selected_folder %}
+            Dossier "{{ selected_folder.name }}"
+            {% else %}
+            Toutes les vidéos
+            {% endif %}
         </h2>
-        <a href="{{ url_for('home') }}" class="text-gray-400 hover:text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        
+        {% if selected_folder %}
+        <a href="{{ url_for('home') }}" class="text-gray-400 hover:text-white flex items-center text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
+            Tout voir
         </a>
+        {% endif %}
     </div>
-    {% endif %}
 
     <!-- Grille de vidéos -->
     {% if videos %}
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {% for video in videos %}
-        <div class="group relative bg-[#1E1E1E] rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+        <div class="group relative bg-[#1E1E1E] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
             <!-- Lien vers la vidéo -->
             <a href="{{ url_for('video_page', video_id=video.id) }}" class="block">
                 <!-- Thumbnail -->
@@ -69,12 +117,12 @@
                 </div>
             </a>
 
-            <!-- Contrôles de dossier (pour les créateurs) -->
+            <!-- Contrôles de dossier -->
             {% if current_user.is_authenticated and (current_user.id == video.user_id or current_user.is_admin) %}
             <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                 <div class="relative">
                     <!-- Bouton menu -->
-                    <button onclick="toggleFolderMenu('{{ video.id }}')" 
+                    <button onclick="toggleVideoMenu('{{ video.id }}')" 
                             class="bg-black/70 hover:bg-black text-white p-2 rounded-full">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -82,29 +130,32 @@
                     </button>
                     
                     <!-- Menu déroulant -->
-                    <div id="folderMenu-{{ video.id }}" class="hidden absolute right-0 mt-2 w-48 bg-[#2C2C2C] rounded-md shadow-lg z-10 border border-[#3C3C3C]">
-                        <form method="POST" action="{{ url_for('move_video', video_id=video.id) }}" class="py-1">
-                            <button type="submit" name="folder_id" value="" 
-                                    class="w-full text-left px-4 py-2 text-sm hover:bg-[#3C3C3C] flex items-center {% if not video.folder_id %}bg-blue-600/20{% endif %}">
-                                <span>Aucun dossier</span>
-                                {% if not video.folder_id %}
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                </svg>
-                                {% endif %}
-                            </button>
-                            {% for folder in current_user.folders|sort(attribute='name') %}
-                            <button type="submit" name="folder_id" value="{{ folder.id }}" 
-                                    class="w-full text-left px-4 py-2 text-sm hover:bg-[#3C3C3C] flex items-center {% if video.folder_id == folder.id %}bg-blue-600/20{% endif %}">
-                                <span>{{ folder.name }}</span>
-                                {% if video.folder_id == folder.id %}
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                </svg>
-                                {% endif %}
-                            </button>
-                            {% endfor %}
-                        </form>
+                    <div id="videoMenu-{{ video.id }}" class="hidden absolute right-0 mt-2 w-48 bg-[#2C2C2C] rounded-md shadow-lg z-10 border border-[#3C3C3C]">
+                        <div class="py-1">
+                            <p class="px-4 py-2 text-xs text-gray-400 border-b border-[#3C3C3C]">Déplacer vers :</p>
+                            <form method="POST" action="{{ url_for('move_video', video_id=video.id) }}">
+                                <button type="submit" name="folder_id" value="" 
+                                        class="w-full text-left px-4 py-2 text-sm hover:bg-[#3C3C3C] flex items-center {% if not video.folder_id %}text-blue-400{% endif %}">
+                                    <span>Aucun dossier</span>
+                                    {% if not video.folder_id %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                    {% endif %}
+                                </button>
+                                {% for folder in current_user.created_folders|sort(attribute='name') %}
+                                <button type="submit" name="folder_id" value="{{ folder.id }}" 
+                                        class="w-full text-left px-4 py-2 text-sm hover:bg-[#3C3C3C] flex items-center {% if video.folder_id == folder.id %}text-blue-400{% endif %}">
+                                    <span>{{ folder.name }}</span>
+                                    {% if video.folder_id == folder.id %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                    {% endif %}
+                                </button>
+                                {% endfor %}
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -161,14 +212,29 @@
 
 <script>
 // Gestion des menus de dossier
-function toggleFolderMenu(videoId) {
+function toggleFolderMenu(folderId) {
+    event.preventDefault();
     event.stopPropagation();
-    const menu = document.getElementById(`folderMenu-${videoId}`);
+    const menu = document.getElementById(`folderMenu-${folderId}`);
     menu.classList.toggle('hidden');
     
     // Fermer les autres menus ouverts
-    document.querySelectorAll('[id^="folderMenu-"]').forEach(otherMenu => {
-        if (otherMenu.id !== `folderMenu-${videoId}` && !otherMenu.classList.contains('hidden')) {
+    document.querySelectorAll('[id^="folderMenu-"], [id^="videoMenu-"]').forEach(otherMenu => {
+        if (otherMenu.id !== `folderMenu-${folderId}` && !otherMenu.classList.contains('hidden')) {
+            otherMenu.classList.add('hidden');
+        }
+    });
+}
+
+// Gestion des menus de vidéo
+function toggleVideoMenu(videoId) {
+    event.stopPropagation();
+    const menu = document.getElementById(`videoMenu-${videoId}`);
+    menu.classList.toggle('hidden');
+    
+    // Fermer les autres menus ouverts
+    document.querySelectorAll('[id^="folderMenu-"], [id^="videoMenu-"]').forEach(otherMenu => {
+        if (otherMenu.id !== `videoMenu-${videoId}` && !otherMenu.classList.contains('hidden')) {
             otherMenu.classList.add('hidden');
         }
     });
@@ -176,7 +242,7 @@ function toggleFolderMenu(videoId) {
 
 // Fermer les menus quand on clique ailleurs
 document.addEventListener('click', () => {
-    document.querySelectorAll('[id^="folderMenu-"]').forEach(menu => {
+    document.querySelectorAll('[id^="folderMenu-"], [id^="videoMenu-"]').forEach(menu => {
         menu.classList.add('hidden');
     });
 });
