@@ -110,16 +110,44 @@ def create_folder():
 @login_required
 def delete_folder(folder_id):
     folder = Folder.query.get_or_404(folder_id)
+    
+    # Vérification des permissions
     if folder.user_id != current_user.id and not current_user.is_admin:
         abort(403)
     
-    # Réaffecter les vidéos à aucun dossier
-    Video.query.filter_by(folder_id=folder.id).update({'folder_id': None})
+    try:
+        # Suppression des vidéos associées
+        for video in folder.videos:
+            # Suppression du fichier vidéo
+            video_path = os.path.join(app.config['UPLOAD_FOLDER'], video.filename)
+            if os.path.exists(video_path):
+                os.remove(video_path)
+            
+            # Suppression de la thumbnail
+            thumb_path = os.path.join(app.config['UPLOAD_FOLDER'], 
+                                    f"{os.path.splitext(video.filename)[0]}_thumb.jpg")
+            if os.path.exists(thumb_path):
+                os.remove(thumb_path)
+            
+            # Suppression de la vidéo de la base de données
+            db.session.delete(video)
+        
+        # Suppression de la thumbnail du dossier si elle existe
+        if folder.custom_thumbnail:
+            thumb_path = os.path.join(app.config['UPLOAD_FOLDER'], folder.custom_thumbnail)
+            if os.path.exists(thumb_path):
+                os.remove(thumb_path)
+        
+        # Suppression du dossier de la base de données
+        db.session.delete(folder)
+        db.session.commit()
+        
+        flash('Dossier et son contenu supprimés avec succès', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erreur lors de la suppression : {str(e)}', 'error')
+        app.logger.error(f"Erreur suppression dossier {folder_id}: {str(e)}")
     
-    db.session.delete(folder)
-    db.session.commit()
-    
-    flash('Dossier supprimé avec succès', 'success')
     return redirect(url_for('home'))
 
 # Vue d'un dossier spécifique

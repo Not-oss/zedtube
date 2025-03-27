@@ -36,8 +36,9 @@ class Folder(db.Model):
     created_at = db.Column(db.DateTime, server_default=func.now())
     
     # Relation avec les vidéos
-    videos = db.relationship('Video', backref='folder', lazy=True, order_by='Video.upload_date.desc()')
-
+    videos = db.relationship('Video', backref='folder', lazy=True, 
+                           cascade='all, delete-orphan',
+                           order_by='Video.upload_date.desc()')
     def get_thumbnail(self):
         """Retourne le chemin de la miniature du dossier"""
         if self.custom_thumbnail:

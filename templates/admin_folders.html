@@ -30,17 +30,30 @@
     </div>
 
     <!-- Liste des dossiers -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {% for folder in folders %}
-        <div class="bg-[#1E1E1E] rounded-lg p-4">
-            <h3 class="text-lg font-semibold mb-2">{{ folder.name }}</h3>
-            <p class="text-sm text-gray-400 mb-3">{{ folder.videos|length }} videos</p>
-            <a href="{{ url_for('folder_videos', folder_id=folder.id) }}"
-               class="text-blue-500 hover:underline text-sm">
-                View Videos
-            </a>
+    {% for folder in folders %}
+    <div class="bg-[#1E1E1E] rounded-lg p-4">
+        <div class="flex justify-between items-start">
+            <div>
+                <h3 class="text-lg font-semibold mb-2">{{ folder.name }}</h3>
+                <p class="text-sm text-gray-400 mb-3">{{ folder.videos|length }} videos</p>
+            </div>
+            
+            <div class="flex space-x-2">
+                <a href="{{ url_for('folder_videos', folder_id=folder.id) }}"
+                   class="text-blue-500 hover:underline text-sm">
+                    View Videos
+                </a>
+                
+                <form method="POST" action="{{ url_for('delete_folder', folder_id=folder.id) }}"
+                      onsubmit="return confirm('Delete this folder and ALL its videos?');">
+                    <button type="submit" class="text-red-500 hover:text-red-700 text-sm">
+                        Delete
+                    </button>
+                </form>
+            </div>
         </div>
-        {% endfor %}
+    </div>
+    {% endfor %}
     </div>
 </div>
 
