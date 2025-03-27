@@ -656,11 +656,14 @@ def toggle_folder_privacy(folder_id):
 if __name__ == '__main__':
     with app.app_context():
         try:
-            # Suppression de toutes les tables
-            db.drop_all()
-            # Recréation de toutes les tables
-            db.create_all()
-            print("Base de données initialisée avec succès")
+            # Vérifier si la base de données existe
+            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'youtube_clone.db')
+            if not os.path.exists(db_path):
+                # Créer la base de données et les tables
+                db.create_all()
+                print("Base de données initialisée avec succès")
+            else:
+                print("Base de données existante détectée")
         except Exception as e:
             print("Erreur lors de l'initialisation de la base de données:", str(e))
             traceback.print_exc()
