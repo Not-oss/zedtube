@@ -58,11 +58,11 @@
 
 <script>
 function copyPageLink() {
-    fetch(`/generate_share_link/${{{ video.id }}}`)
+    fetch(`/generate_share_link/${video.id}`)
         .then(response => response.json())
         .then(data => {
             navigator.clipboard.writeText(data.share_link)
-                .then(() => alert('Lien Discord copié !'))
+                .then(() => alert('Lien de partage copié !'))
                 .catch(() => prompt('Copiez ce lien :', data.share_link));
         });
 }

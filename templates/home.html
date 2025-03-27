@@ -161,10 +161,10 @@ function shareVideo(videoId) {
             
             // Essayer de copier dans le presse-papiers
             navigator.clipboard.writeText(shareLink)
-                .then(() => alert('Lien Discord copié !'))
+                .then(() => alert('Lien de partage copié !'))
                 .catch(() => {
                     // Fallback si clipboard échoue
-                    prompt('Copiez ce lien spécial pour Discord :', shareLink);
+                    prompt('Copiez ce lien pour partager la vidéo :', shareLink);
                 });
         })
         .catch(error => {

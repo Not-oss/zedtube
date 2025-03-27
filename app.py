@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, abort, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from functools import wraps
+from urllib.parse import quote
 
 from werkzeug.utils import secure_filename
 from models import db, User, Video, VideoView, Folder  # Ajoutez Folder ici
@@ -503,12 +504,13 @@ def generate_share_link(video_id):
     thumbnail_url = url_for('serve_thumbnail', filename=video.filename, _external=True)
     encoded_thumbnail_url = quote(thumbnail_url, safe='')
     
-    # Création du lien Discord
-    discord_link = f"https://discord.nfp.is/?v={encoded_video_url}&i={encoded_thumbnail_url}"
+    # Création du lien dans le nouveau format
+    share_link = f"https://stolen.shoes/embedVideo?video={encoded_video_url}&image={encoded_thumbnail_url}"
     
     return jsonify({
-        'share_link': discord_link,
-        'direct_link': video_url
+        'share_link': share_link,
+        'direct_link': video_url,
+        'thumbnail_link': thumbnail_url
     })
 
 if __name__ == '__main__':
