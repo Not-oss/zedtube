@@ -25,10 +25,18 @@ class Folder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, ForeignKey('user.id'), nullable=False)
+    custom_thumbnail = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, server_default=func.now())
-    # Relation modifiée
-    creator = db.relationship('User', back_populates='created_folders')
-    videos = db.relationship('Video', back_populates='parent_folder', lazy=True)
+    
+    user = db.relationship('User', backref='folders')
+    videos = db.relationship('Video', backref='folder', lazy=True, order_by='Video.upload_date.desc()')
+
+    def get_thumbnail(self):
+        if self.custom_thumbnail:
+            return url_for('serve_uploaded_file', filename=self.custom_thumbnail)
+        elif self.videos:
+            return url_for('serve_thumbnail', filename=self.videos[0].filename)
+        return url_for('static', filename='default_folder.png')
 
 class Video(db.Model):
     id = db.Column(db.Integer, primary_key=True)

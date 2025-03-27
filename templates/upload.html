@@ -3,44 +3,48 @@
 <div class="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
     <h2 class="text-2xl mb-6 text-center dark:text-white">Uploader une vidéo</h2>
     
-    <form id="uploadForm" class="space-y-4" enctype="multipart/form-data">
-        <input type="text" id="videoTitle" name="title" placeholder="Titre de la vidéo" 
-               class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    <form id="uploadForm" method="POST" enctype="multipart/form-data" class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium dark:text-white mb-1">Titre de la vidéo</label>
+            <input type="text" name="title" placeholder="Donnez un titre à votre vidéo" 
+                   class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
         
-        <div class="flex items-center justify-center w-full">
-            <label for="videoFile" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
-                <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                    <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
-                    </svg>
-                    <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Cliquez pour upload</span> ou glissez-déposez</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">MP4, MOV (MAX. 1GB)</p>
-                </div>
-                <input id="videoFile" name="video" type="file" class="hidden" accept="video/*" required>
-            </label>
+        <div>
+            <label class="block text-sm font-medium dark:text-white mb-1">Fichier vidéo</label>
+            <div class="flex items-center justify-center w-full">
+                <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                        </svg>
+                        <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Cliquez pour uploader</span></p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">MP4, MOV (MAX. 1GB)</p>
+                    </div>
+                    <input id="videoFile" name="video" type="file" class="hidden" accept="video/*" required>
+                </label>
+            </div>
         </div>
 
         <div class="flex items-center space-x-2">
             <input type="checkbox" id="convertVideo" name="convert" checked 
                    class="form-checkbox h-5 w-5 text-blue-600 dark:bg-gray-700 dark:border-gray-600">
             <label for="convertVideo" class="dark:text-white">
-                Convertir la vidéo (recommandé pour une meilleure compatibilité)
+                Convertir la vidéo (recommandé)
             </label>
         </div>
         
-        {% if current_user.is_admin %}
-        <div class="space-y-2">
-            <label class="block text-sm font-medium dark:text-white">Folder</label>
+        <div>
+            <label class="block text-sm font-medium dark:text-white mb-1">Dossier</label>
             <select name="folder_id" class="w-full p-2 bg-[#2C2C2C] border border-[#3C3C3C] rounded text-white">
-                <option value="">Main Library</option>
-                {% for folder in folders %}
+                <option value="">Aucun dossier</option>
+                {% for folder in current_user.folders|sort(attribute='name') %}
                 <option value="{{ folder.id }}">{{ folder.name }}</option>
                 {% endfor %}
             </select>
         </div>
-        {% endif %}
         
-        <button type="button" onclick="startUpload()" 
+        <button type="submit" 
                 class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-700">
             Commencer l'upload
         </button>
@@ -52,65 +56,51 @@
         </div>
         <p id="progressStatus" class="text-sm dark:text-white">Préparation de l'upload...</p>
     </div>
-
-    <div id="uploadResult" class="hidden mt-6 p-4 rounded-lg bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-        <div class="flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-            </svg>
-            <p id="successMessage">Vidéo uploadée avec succès!</p>
-        </div>
-        <div class="mt-2 text-sm">
-            <p>Redirection dans <span id="countdown">5</span> secondes...</p>
-        </div>
-    </div>
 </div>
 
 <script>
-function startUpload() {
-    const fileInput = document.getElementById('videoFile');
-    const file = fileInput.files[0];
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
     
-    if (!file) {
-        alert('Veuillez sélectionner un fichier vidéo');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('video', file);
-    formData.append('title', document.getElementById('videoTitle').value || file.name);
-    formData.append('convert', document.getElementById('convertVideo').checked);
-
-    document.getElementById('uploadForm').classList.add('hidden');
-    document.getElementById('uploadProgress').classList.remove('hidden');
-
-    fetch('/upload', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (!response.ok) throw new Error('Erreur serveur');
-        return response.json();
-    })
-    .then(data => {
-        document.getElementById('uploadProgress').classList.add('hidden');
-        document.getElementById('uploadResult').classList.remove('hidden');
-        document.getElementById('successMessage').textContent = `Vidéo "${data.title}" uploadée (${data.file_size} MB)`;
-        
-        let seconds = 5;
-        const countdown = setInterval(() => {
-            document.getElementById('countdown').textContent = seconds;
-            seconds--;
-            if (seconds < 0) {
-                clearInterval(countdown);
+    const formData = new FormData(this);
+    const progressBar = document.getElementById('progressBar');
+    const progressStatus = document.getElementById('progressStatus');
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadProgress = document.getElementById('uploadProgress');
+    
+    uploadForm.classList.add('hidden');
+    uploadProgress.classList.remove('hidden');
+    
+    const xhr = new XMLHttpRequest();
+    
+    xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+            const percentComplete = (e.loaded / e.total) * 100;
+            progressBar.style.width = percentComplete + '%';
+            progressStatus.textContent = 'Upload en cours: ' + Math.round(percentComplete) + '%';
+        }
+    };
+    
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            progressStatus.textContent = 'Upload terminé! Redirection...';
+            setTimeout(() => {
                 window.location.href = '/';
-            }
-        }, 1000);
-    })
-    .catch(error => {
-        document.getElementById('progressStatus').textContent = 'Échec: ' + error.message;
-        document.getElementById('uploadForm').classList.remove('hidden');
-    });
-}
+            }, 1500);
+        } else {
+            progressStatus.textContent = 'Erreur lors de l\'upload';
+            console.error(xhr.responseText);
+        }
+    };
+    
+    xhr.open('POST', '/upload', true);
+    xhr.send(formData);
+});
+
+document.getElementById('videoFile').addEventListener('change', function(e) {
+    const fileName = e.target.files[0] ? e.target.files[0].name : 'Aucun fichier sélectionné';
+    const label = e.target.closest('label');
+    label.querySelector('p:first-of-type').textContent = fileName;
+});
 </script>
 {% endblock %}

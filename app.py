@@ -33,26 +33,8 @@ def load_user(user_id):
 
 @app.route('/')
 def home():
-    try:
-        # Ensure videos exist by creating a default video if none
-        if Video.query.count() == 0:
-            # Create a default video for demonstration
-            default_video = Video(
-                filename='default_video.mp4',  # Ensure this file exists in your uploads folder
-                original_filename='default_video.mp4',  # Add this line
-                title='Welcome to ZedTube',
-                user_id=1,  # Assuming admin user exists
-                upload_date=datetime.utcnow()
-            )
-            db.session.add(default_video)
-            db.session.commit()
-
-        videos = Video.query.order_by(Video.upload_date.desc()).all()
-        return render_template('home.html', videos=videos)
-    except Exception as e:
-        print("Error in home route:", str(e))
-        traceback.print_exc()
-        return f"An error occurred: {str(e)}", 500
+    videos = Video.query.filter_by(folder_id=None).order_by(Video.upload_date.desc()).all()
+    return render_template('home.html', videos=videos)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -417,10 +399,59 @@ def serve_thumbnail(filename):
     try:
         base_filename = os.path.splitext(filename)[0]
         thumbnail_filename = f"{base_filename}_thumb.jpg"
+        thumbnail_path = os.path.join(app.config['UPLOAD_FOLDER'], thumbnail_filename)
+        
+        if not os.path.exists(thumbnail_path):
+            # Regénérer la thumbnail si manquante
+            video_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            try:
+                (
+                    ffmpeg
+                    .input(video_path, ss='00:00:01')
+                    .output(thumbnail_path, vframes=1)
+                    .overwrite_output()
+                    .run(capture_stdout=True, capture_stderr=True)
+                )
+            except Exception as e:
+                print(f"Erreur regénération thumbnail: {e}")
+                return send_from_directory('static', 'default_thumb.jpg')
+        
         return send_from_directory(app.config['UPLOAD_FOLDER'], thumbnail_filename)
-    except FileNotFoundError:
-        # Retourner une image par défaut si la miniature n'existe pas
+    except Exception as e:
+        print(f"Erreur thumbnail: {e}")
         return send_from_directory('static', 'default_thumb.jpg')
+
+# Upload thumbnail de dossier
+@app.route('/upload_folder_thumbnail/<int:folder_id>', methods=['POST'])
+@login_required
+def upload_folder_thumbnail(folder_id):
+    folder = Folder.query.get_or_404(folder_id)
+    if folder.user_id != current_user.id and not current_user.is_admin:
+        abort(403)
+    
+    if 'thumbnail' not in request.files:
+        flash('Aucun fichier sélectionné', 'error')
+        return redirect(request.referrer)
+    
+    file = request.files['thumbnail']
+    if file.filename == '':
+        flash('Aucun fichier sélectionné', 'error')
+        return redirect(request.referrer)
+    
+    if file and allowed_file(file.filename):
+        filename = f"folder_{folder_id}_thumb.{file.filename.rsplit('.', 1)[1].lower()}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        # Supprime l'ancienne thumbnail si elle existe
+        if folder.custom_thumbnail and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], folder.custom_thumbnail)):
+            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], folder.custom_thumbnail))
+        
+        folder.custom_thumbnail = filename
+        db.session.commit()
+        flash('Miniature du dossier mise à jour!', 'success')
+    
+    return redirect(request.referrer)
 
 @app.route('/generate_share_link/<int:video_id>')
 def generate_share_link(video_id):
