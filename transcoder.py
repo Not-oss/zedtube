@@ -1,5 +1,6 @@
 import os
 import time
+import ffmpeg
 from google.cloud import storage
 from google.cloud.video.transcoder_v1 import TranscoderServiceClient
 from google.cloud.video.transcoder_v1 import Job
@@ -19,7 +20,36 @@ def download_from_gcs(bucket_name, source_blob_name, destination_file_path):
     blob = bucket.blob(source_blob_name)
     blob.download_to_filename(destination_file_path)
 
-def create_transcode_job(input_uri, output_uri, project_id, location="us-central1"):
+def get_video_info(file_path):
+    """Get video information using ffmpeg."""
+    try:
+        probe = ffmpeg.probe(file_path)
+        video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
+        audio_info = next(s for s in probe['streams'] if s['codec_type'] == 'audio')
+        
+        return {
+            'width': int(video_info.get('width', 1920)),
+            'height': int(video_info.get('height', 1080)),
+            'fps': eval(video_info.get('r_frame_rate', '30/1')),
+            'bitrate': int(video_info.get('bit_rate', 2500000)),
+            'audio_bitrate': int(audio_info.get('bit_rate', 64000)),
+            'audio_channels': int(audio_info.get('channels', 2)),
+            'audio_sample_rate': int(audio_info.get('sample_rate', 48000))
+        }
+    except Exception as e:
+        print(f"Error getting video info: {e}")
+        # Valeurs par défaut si l'analyse échoue
+        return {
+            'width': 1920,
+            'height': 1080,
+            'fps': 30,
+            'bitrate': 2500000,
+            'audio_bitrate': 64000,
+            'audio_channels': 2,
+            'audio_sample_rate': 48000
+        }
+
+def create_transcode_job(input_uri, output_uri, project_id, video_info, location="us-central1"):
     """Create a transcoding job with Google Cloud Transcode."""
     client = TranscoderServiceClient()
     parent = f"projects/{project_id}/locations/{location}"
@@ -27,36 +57,34 @@ def create_transcode_job(input_uri, output_uri, project_id, location="us-central
     job_config = {
         "input_uri": input_uri,
         "output_uri": output_uri,
-        "job_config": {
-            "elementary_streams": [
-                {
-                    "key": "video-stream0",
-                    "video_stream": {
-                        "codec": "h264",
-                        "bitrate_bps": 2_500_000,
-                        "frame_rate": 30,
-                        "height_pixels": 720,
-                        "width_pixels": 1280,
-                    }
-                },
-                {
-                    "key": "audio-stream0",
-                    "audio_stream": {
-                        "codec": "aac",
-                        "bitrate_bps": 64_000,
-                        "sample_rate_hertz": 48000,
-                        "channel_count": 2,
-                    }
+        "elementary_streams": [
+            {
+                "key": "video-stream0",
+                "video_stream": {
+                    "codec": "h264",
+                    "bitrate_bps": video_info['bitrate'],
+                    "frame_rate": video_info['fps'],
+                    "height_pixels": video_info['height'],
+                    "width_pixels": video_info['width'],
                 }
-            ],
-            "mux_streams": [
-                {
-                    "key": "sd",
-                    "container": "mp4",
-                    "elementary_streams": ["video-stream0", "audio-stream0"],
+            },
+            {
+                "key": "audio-stream0",
+                "audio_stream": {
+                    "codec": "aac",
+                    "bitrate_bps": video_info['audio_bitrate'],
+                    "sample_rate_hertz": video_info['audio_sample_rate'],
+                    "channel_count": video_info['audio_channels'],
                 }
-            ]
-        }
+            }
+        ],
+        "mux_streams": [
+            {
+                "key": "sd",
+                "container": "mp4",
+                "elementary_streams": ["video-stream0", "audio-stream0"],
+            }
+        ]
     }
     
     job_name = f"job-{int(time.time())}"
@@ -88,6 +116,10 @@ def process_video_with_transcode(input_file_path, output_file_path, project_id, 
         if not os.path.exists(input_file_path):
             raise FileNotFoundError(f"Input file not found: {input_file_path}")
 
+        # Get video information
+        video_info = get_video_info(input_file_path)
+        print(f"Video info: {video_info}")
+
         # Upload the input video to GCS
         input_blob_name = f"input/{os.path.basename(input_file_path)}"
         input_uri = upload_to_gcs(input_file_path, bucket_name, input_blob_name)
@@ -96,9 +128,9 @@ def process_video_with_transcode(input_file_path, output_file_path, project_id, 
         output_blob_name = f"output/{os.path.basename(output_file_path)}"
         output_uri = f"gs://{bucket_name}/{output_blob_name}"
         
-        # Create transcoding job
+        # Create transcoding job with original video info
         job_name = os.path.basename(job_name) if 'job_name' in locals() else f"job-{int(time.time())}"
-        create_job_response = create_transcode_job(input_uri, output_uri, project_id, location)
+        create_job_response = create_transcode_job(input_uri, output_uri, project_id, video_info, location)
         
         # Wait for job completion
         max_attempts = 30  # 5 minutes max wait (10s * 30)
