@@ -25,6 +25,13 @@ app.config['WTF_CSRF_ENABLED'] = True
 # Ensure uploads directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+# Liste des extensions de fichiers autorisées
+ALLOWED_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'webm'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 db.init_app(app)
 csrf = CSRFProtect(app)
 
