@@ -58,15 +58,19 @@
 
 <script>
 function copyPageLink() {
-    navigator.clipboard.writeText(window.location.href)
-        .then(() => alert('Page link copied!'))
-        .catch(err => console.error('Copy failed:', err));
+    fetch(`/generate_share_link/${{{ video.id }}}`)
+        .then(response => response.json())
+        .then(data => {
+            navigator.clipboard.writeText(data.share_link)
+                .then(() => alert('Lien Discord copié !'))
+                .catch(() => prompt('Copiez ce lien :', data.share_link));
+        });
 }
 
 function copyDirectLink() {
     const directLink = "{{ url_for('serve_video', filename=video.filename, _external=True) }}";
     navigator.clipboard.writeText(directLink)
-        .then(() => alert('Direct video link copied!'))
+        .then(() => alert('Lien direct copié !'))
         .catch(err => console.error('Copy failed:', err));
 }
 

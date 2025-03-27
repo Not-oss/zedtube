@@ -494,8 +494,22 @@ def upload_folder_thumbnail(folder_id):
 @app.route('/generate_share_link/<int:video_id>')
 def generate_share_link(video_id):
     video = Video.query.get_or_404(video_id)
-    share_link = request.host_url.rstrip('/') + url_for('video_page', video_id=video.id)
-    return jsonify({'share_link': share_link})
+    
+    # URL de la vidéo
+    video_url = url_for('serve_video', filename=video.filename, _external=True)
+    encoded_video_url = quote(video_url, safe='')
+    
+    # URL de la thumbnail
+    thumbnail_url = url_for('serve_thumbnail', filename=video.filename, _external=True)
+    encoded_thumbnail_url = quote(thumbnail_url, safe='')
+    
+    # Création du lien Discord
+    discord_link = f"https://discord.nfp.is/?v={encoded_video_url}&i={encoded_thumbnail_url}"
+    
+    return jsonify({
+        'share_link': discord_link,
+        'direct_link': video_url
+    })
 
 if __name__ == '__main__':
     with app.app_context():

@@ -157,9 +157,15 @@ function shareVideo(videoId) {
     fetch(`/generate_share_link/${videoId}`)
         .then(response => response.json())
         .then(data => {
-            navigator.clipboard.writeText(data.share_link)
-                .then(() => alert('Lien copié dans le presse-papiers !'))
-                .catch(() => prompt('Copiez ce lien :', data.share_link));
+            const shareLink = data.share_link;
+            
+            // Essayer de copier dans le presse-papiers
+            navigator.clipboard.writeText(shareLink)
+                .then(() => alert('Lien Discord copié !'))
+                .catch(() => {
+                    // Fallback si clipboard échoue
+                    prompt('Copiez ce lien spécial pour Discord :', shareLink);
+                });
         })
         .catch(error => {
             console.error('Error:', error);
