@@ -57,34 +57,36 @@ def create_transcode_job(input_uri, output_uri, project_id, video_info, location
     job_config = {
         "input_uri": input_uri,
         "output_uri": output_uri,
-        "elementary_streams": [
-            {
-                "key": "video-stream0",
-                "video_stream": {
-                    "codec": "h264",
-                    "bitrate_bps": video_info['bitrate'],
-                    "frame_rate": video_info['fps'],
-                    "height_pixels": video_info['height'],
-                    "width_pixels": video_info['width'],
+        "config": {
+            "elementary_streams": [
+                {
+                    "key": "video-stream0",
+                    "video_stream": {
+                        "codec": "h264",
+                        "bitrate_bps": video_info['bitrate'],
+                        "frame_rate": video_info['fps'],
+                        "height_pixels": video_info['height'],
+                        "width_pixels": video_info['width'],
+                    }
+                },
+                {
+                    "key": "audio-stream0",
+                    "audio_stream": {
+                        "codec": "aac",
+                        "bitrate_bps": video_info['audio_bitrate'],
+                        "sample_rate_hertz": video_info['audio_sample_rate'],
+                        "channel_count": video_info['audio_channels'],
+                    }
                 }
-            },
-            {
-                "key": "audio-stream0",
-                "audio_stream": {
-                    "codec": "aac",
-                    "bitrate_bps": video_info['audio_bitrate'],
-                    "sample_rate_hertz": video_info['audio_sample_rate'],
-                    "channel_count": video_info['audio_channels'],
+            ],
+            "mux_streams": [
+                {
+                    "key": "sd",
+                    "container": "mp4",
+                    "elementary_streams": ["video-stream0", "audio-stream0"],
                 }
-            }
-        ],
-        "mux_streams": [
-            {
-                "key": "sd",
-                "container": "mp4",
-                "elementary_streams": ["video-stream0", "audio-stream0"],
-            }
-        ]
+            ]
+        }
     }
     
     job_name = f"job-{int(time.time())}"
