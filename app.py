@@ -27,6 +27,14 @@ app.config['GOOGLE_CLOUD_BUCKET'] = 'zedtube-videos'  # Remplacer par le nom de 
 
 # Ensure uploads directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs('static', exist_ok=True)  # Créer le dossier static s'il n'existe pas
+
+# Liste des extensions de fichiers autorisées
+ALLOWED_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'webm'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 db.init_app(app)
 csrf = CSRFProtect(app)
@@ -334,9 +342,37 @@ def request_action(user_id, action):
     db.session.commit()
     return redirect(url_for('manage_requests'))
 
+@app.route('/admin/approve_upload_request/<int:user_id>', methods=['POST'])
+@admin_required
+def approve_upload_request(user_id):
+    user = User.query.get_or_404(user_id)
+    user.can_upload = True
+    user.upload_requested = False
+    user.upload_requested_date = None
+    db.session.commit()
+    flash(f'Droits d\'upload accordés à {user.username}', 'success')
+    return redirect(url_for('admin_panel'))
 
+@app.route('/admin/reject_upload_request/<int:user_id>', methods=['POST'])
+@admin_required
+def reject_upload_request(user_id):
+    user = User.query.get_or_404(user_id)
+    user.upload_requested = False
+    user.upload_requested_date = None
+    db.session.commit()
+    flash(f'Demande d\'upload rejetée pour {user.username}', 'success')
+    return redirect(url_for('admin_panel'))
 
-
+@app.route('/admin/toggle_upload_rights/<int:user_id>', methods=['POST'])
+@admin_required
+def toggle_upload_rights(user_id):
+    user = User.query.get_or_404(user_id)
+    user.can_upload = not user.can_upload
+    user.upload_requested = False
+    user.upload_requested_date = None
+    db.session.commit()
+    flash(f'Droits d\'upload {"accordés" if user.can_upload else "retirés"} à {user.username}', 'success')
+    return redirect(url_for('admin_panel'))
 
 @app.route('/create_admin')
 def create_admin():
