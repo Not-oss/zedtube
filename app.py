@@ -34,8 +34,16 @@ def load_user(user_id):
 
 @app.route('/')
 def home():
+    if current_user.is_authenticated:
+        folders = Folder.query.filter(
+            (Folder.user_id == current_user.id) | 
+            (Folder.is_public == True)
+        ).order_by(Folder.name).all()
+    else:
+        folders = Folder.query.filter_by(is_public=True).order_by(Folder.name).all()
+    
     videos = Video.query.filter_by(folder_id=None).order_by(Video.upload_date.desc()).all()
-    return render_template('home.html', videos=videos)
+    return render_template('home.html', folders=folders, videos=videos)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -405,7 +413,6 @@ def upload_video():
 def discord_embed(video_id):
     video = Video.query.get_or_404(video_id)
     
-    # Récupération des métadonnées vidéo
     try:
         probe = ffmpeg.probe(os.path.join(app.config['UPLOAD_FOLDER'], video.filename))
         video_stream = next(s for s in probe['streams'] if s['codec_type'] == 'video')
@@ -422,6 +429,7 @@ def discord_embed(video_id):
         video_width=width,
         video_height=height
     )
+
 
 @app.route('/video/<filename>')
 def serve_video(filename):
@@ -497,23 +505,26 @@ def upload_folder_thumbnail(folder_id):
 @app.route('/generate_share_link/<int:video_id>')
 def generate_share_link(video_id):
     video = Video.query.get_or_404(video_id)
-    
-    # URL de la vidéo
     video_url = url_for('serve_video', filename=video.filename, _external=True)
-    encoded_video_url = quote(video_url, safe='')
-    
-    # URL de la thumbnail
     thumbnail_url = url_for('serve_thumbnail', filename=video.filename, _external=True)
-    encoded_thumbnail_url = quote(thumbnail_url, safe='')
-    
-    # Création du lien dans le nouveau format
-    share_link = f"https://stolen.shoes/embedVideo?video={encoded_video_url}&image={encoded_thumbnail_url}"
     
     return jsonify({
-        'share_link': share_link,
-        'direct_link': video_url,
-        'thumbnail_link': thumbnail_url
+        'share_link': url_for('discord_embed', video_id=video.id, _external=True),
+        'direct_link': video_url
     })
+
+# Ajoutez ces routes
+@app.route('/toggle_folder_privacy/<int:folder_id>', methods=['POST'])
+@login_required
+def toggle_folder_privacy(folder_id):
+    folder = Folder.query.get_or_404(folder_id)
+    if folder.user_id != current_user.id and not current_user.is_admin:
+        abort(403)
+    
+    folder.is_public = not folder.is_public
+    db.session.commit()
+    return jsonify({'status': 'success', 'is_public': folder.is_public})
+
 
 if __name__ == '__main__':
     with app.app_context():

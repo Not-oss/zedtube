@@ -17,9 +17,10 @@
             </form>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {% for folder in current_user.folders|sort(attribute='name') %}
-            <div class="group relative aspect-video bg-[#1E1E1E] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" id="folders-container">
+            {% for folder in folders %}
+            <div class="group relative aspect-video bg-[#1E1E1E] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all"
+                 data-folder-id="{{ folder.id }}">
                 <a href="{{ url_for('folder_view', folder_id=folder.id) }}" class="block h-full">
                     <img src="{{ folder.get_thumbnail() }}" 
                          alt="{{ folder.name }}"
@@ -31,22 +32,31 @@
                     </div>
                 </a>
 
-                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <label class="bg-black/70 hover:bg-black text-white p-1.5 rounded-full cursor-pointer">
-                        <input type="file" 
-                               class="hidden" 
-                               accept="image/*"
-                               onchange="uploadFolderThumbnail(this, {{ folder.id }})">
+                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
+                    <button data-action="toggle-privacy" 
+                            data-is-public="{{ folder.is_public|lower }}"
+                            class="bg-black/70 hover:bg-blue-600 text-white p-1.5 rounded-full"
+                            title="{{ 'Rendre privé' if folder.is_public else 'Rendre public' }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </button>
+                    
+                    <button data-action="change-thumbnail"
+                            class="bg-black/70 hover:bg-black text-white p-1.5 rounded-full">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                    </label>
+                    </button>
+                    
                     <form method="POST" action="{{ url_for('delete_folder', folder_id=folder.id) }}"
-                          onsubmit="return confirm('Supprimer ce dossier et TOUTES ses vidéos?');">
-                        <button type="submit" class="bg-black/70 hover:bg-red-600 text-white p-1.5 rounded-full">
+                          data-action="delete">
+                        <button type="submit" 
+                                class="bg-black/70 hover:bg-red-600 text-white p-1.5 rounded-full"
+                                onclick="return confirm('Supprimer ce dossier et TOUTES ses vidéos?');">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                         </button>
                     </form>
@@ -59,17 +69,14 @@
 
     <!-- Section Vidéos -->
     <h2 class="text-2xl font-bold text-white mb-4">
-        {% if selected_folder %}
-        Dossier "{{ selected_folder.name }}"
-        {% else %}
-        Dernières vidéos
-        {% endif %}
+        {% if selected_folder %}Dossier "{{ selected_folder.name }}"
+        {% else %}Dernières vidéos{% endif %}
     </h2>
 
-    {% if videos %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="videos-container">
         {% for video in videos %}
-        <div class="group relative bg-[#1E1E1E] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+        <div class="group relative bg-[#1E1E1E] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
+             data-video-id="{{ video.id }}">
             <a href="{{ url_for('video_page', video_id=video.id) }}" class="block">
                 <div class="aspect-video bg-black relative">
                     <img src="{{ url_for('serve_thumbnail', filename=video.filename) }}" 
@@ -94,83 +101,40 @@
                             • {{ video.views }} vue{{ 's' if video.views > 1 else '' }}
                         </p>
                     </div>
-                    <button onclick="shareVideo({{ video.id }})" 
-                            class="text-gray-400 hover:text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                        </svg>
-                    </button>
+                    <div class="flex space-x-2">
+                        <button data-action="share"
+                                class="text-gray-400 hover:text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                            </svg>
+                        </button>
+                        {% if current_user.is_authenticated and (video.user_id == current_user.id or current_user.is_admin) %}
+                        <form method="POST" action="{{ url_for('delete_video', video_id=video.id) }}"
+                              data-action="delete-video">
+                            <button type="submit" 
+                                    class="text-gray-400 hover:text-red-500"
+                                    onclick="return confirm('Supprimer cette vidéo définitivement?');">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-            
-            <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <form method="POST" action="{{ url_for('delete_video', video_id=video.id) }}"
-                      onsubmit="return confirm('Supprimer cette vidéo définitivement?');">
-                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                    </button>
-                </form>
-            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-12 col-span-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <h3 class="mt-4 text-lg font-medium text-gray-300">
+                {% if selected_folder %}Ce dossier est vide
+                {% else %}Aucune vidéo disponible{% endif %}
+            </h3>
         </div>
         {% endfor %}
     </div>
-    {% else %}
-    <div class="text-center py-12">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-        <h3 class="mt-4 text-lg font-medium text-gray-300">
-            {% if selected_folder %}
-            Ce dossier est vide
-            {% else %}
-            Aucune vidéo disponible
-            {% endif %}
-        </h3>
-    </div>
-    {% endif %}
 </div>
-
-<script>
-function uploadFolderThumbnail(input, folderId) {
-    const file = input.files[0];
-    if (!file) return;
-    
-    const formData = new FormData();
-    formData.append('thumbnail', file);
-    
-    fetch(`/upload_folder_thumbnail/${folderId}`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (response.ok) {
-            window.location.reload();
-        } else {
-            alert('Erreur lors de l\'upload de la miniature');
-        }
-    });
-}
-
-function shareVideo(videoId) {
-    fetch(`/generate_share_link/${videoId}`)
-        .then(response => response.json())
-        .then(data => {
-            const shareLink = data.share_link;
-            
-            // Essayer de copier dans le presse-papiers
-            navigator.clipboard.writeText(shareLink)
-                .then(() => alert('Lien de partage copié !'))
-                .catch(() => {
-                    // Fallback si clipboard échoue
-                    prompt('Copiez ce lien pour partager la vidéo :', shareLink);
-                });
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Erreur lors du partage');
-        });
-}
-</script>
 {% endblock %}
