@@ -299,34 +299,38 @@ def admin_panel():
     users = User.query.all()
     return render_template('admin_panel.html', videos=videos, users=users)
 
-@app.route('/admin/delete_video/<int:video_id>', methods=['POST'])
+@app.route('/delete_video/<int:video_id>', methods=['POST'])
 @login_required
 def delete_video(video_id):
-    if not current_user.is_admin:
-        abort(403)  # Forbidden
-    
     video = Video.query.get_or_404(video_id)
     
-    # Supprimer le fichier vidéo
-    video_path = os.path.join(app.config['UPLOAD_FOLDER'], video.filename)
-    thumb_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{os.path.splitext(video.filename)[0]}_thumb.jpg")
-    
+    # Vérification des permissions
+    if video.user_id != current_user.id and not current_user.is_admin:
+        abort(403)
+
     try:
+        # Chemins des fichiers à supprimer
+        video_path = os.path.join(app.config['UPLOAD_FOLDER'], video.filename)
+        thumb_path = os.path.join(app.config['UPLOAD_FOLDER'], 
+                                f"{os.path.splitext(video.filename)[0]}_thumb.jpg")
+
+        # Suppression physique des fichiers
         if os.path.exists(video_path):
             os.remove(video_path)
         if os.path.exists(thumb_path):
             os.remove(thumb_path)
-        
-        # Supprimer de la base de données
+
+        # Suppression de la base de données
         db.session.delete(video)
         db.session.commit()
-        
+
         flash('Vidéo supprimée avec succès', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur lors de la suppression : {str(e)}', 'error')
-    
-    return redirect(url_for('admin_panel'))
+        app.logger.error(f"Erreur suppression vidéo {video_id}: {str(e)}")
+
+    return redirect(request.referrer or url_for('home'))
 
 
 @app.route('/test_upload', methods=['POST'])

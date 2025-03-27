@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 {% block content %}
 <div class="container mx-auto space-y-6">
@@ -15,29 +14,18 @@
                     ></video>
                 </div>
                 
-                <div class="p-3">
-                    <h3 class="text-sm font-medium mb-2 truncate">
-                        {{ video.title or 'Untitled Video' }}
-                    </h3>
-                    
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs text-gray-400">
-                            {{ video.upload_date.strftime('%b %d, %Y') }}
-                        </span>
-                        
-                        <form 
-                            action="{{ url_for('delete_video', video_id=video.id) }}" 
-                            method="POST" 
-                            onsubmit="return confirm('Are you sure you want to delete this video?');"
-                        >
-                            <button 
-                                type="submit" 
-                                class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-full text-xs transition"
-                            >
-                                Delete
-                            </button>
-                        </form>
+                <div class="p-3 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-sm font-medium mb-2 truncate">{{ video.title or 'Untitled Video' }}</h3>
+                        <span class="text-xs text-gray-400">{{ video.upload_date.strftime('%b %d, %Y') }}</span>
                     </div>
+                    
+                    <form method="POST" action="{{ url_for('delete_video', video_id=video.id) }}"
+                          onsubmit="return confirm('Delete this video permanently?');">
+                        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-full text-xs transition">
+                            Delete
+                        </button>
+                    </form>
                 </div>
             </div>
             {% endfor %}
