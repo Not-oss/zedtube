@@ -17,7 +17,7 @@
                     {% for user in users if user.upload_requested %}
                     <tr class="border-b border-[#2C2C2C]">
                         <td class="p-3">{{ user.username }}</td>
-                        <td class="p-3">{{ user.upload_requested_date.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td class="p-3">{{ user.upload_requested_date.strftime('%d/%m/%Y %H:%M') if user.upload_requested_date else 'Non demandé' }}</td>
                         <td class="p-3 text-center space-x-2">
                             <form method="POST" action="{{ url_for('approve_upload_request', user_id=user.id) }}" class="inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
