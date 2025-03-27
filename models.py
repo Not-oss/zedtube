@@ -53,5 +53,5 @@ class VideoView(db.Model):
     viewed_at = db.Column(db.DateTime, server_default=func.now())
     
     # Relations
-    video = db.relationship('Video', backref='views_relations')
-    user = db.relationship('User', backref='viewed_videos')
+    video = db.relationship('Video', backref='views')
+    user = db.relationship('User', backref='video_views')
