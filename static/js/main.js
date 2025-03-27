@@ -78,6 +78,7 @@ async function uploadFolderThumbnail(input, folderId) {
 
     const formData = new FormData();
     formData.append('thumbnail', input.files[0]);
+    formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
 
     try {
         const response = await fetch(`/upload_folder_thumbnail/${folderId}`, {

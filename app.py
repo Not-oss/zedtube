@@ -306,8 +306,9 @@ def add_user():
 @login_required
 def request_upload():
     current_user.upload_requested = True
+    current_user.upload_requested_date = datetime.utcnow()
     db.session.commit()
-    flash('Your upload request has been submitted to admin', 'info')
+    flash('Votre demande d\'upload a été soumise à l\'administrateur', 'info')
     return redirect(url_for('profile'))
 
 # Route admin pour gérer les demandes
@@ -326,7 +327,9 @@ def request_action(user_id, action):
     user = User.query.get_or_404(user_id)
     if action == 'approve':
         user.can_upload = True
-        flash(f'Upload rights granted to {user.username}', 'success')
+        flash(f'Droits d\'upload accordés à {user.username}', 'success')
+    elif action == 'reject':
+        flash(f'Demande d\'upload refusée pour {user.username}', 'info')
     user.upload_requested = False
     db.session.commit()
     return redirect(url_for('manage_requests'))
