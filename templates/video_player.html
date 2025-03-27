@@ -57,30 +57,37 @@
 </div>
 
 <script>
-function copyPageLink() {
-    fetch(`/generate_share_link/${video.id}`)
-        .then(response => response.json())
-        .then(data => {
-            navigator.clipboard.writeText(data.share_link)
-                .then(() => alert('Lien de partage copié !'))
-                .catch(() => prompt('Copiez ce lien :', data.share_link));
-        });
-}
-
-function copyDirectLink() {
-    const directLink = "{{ url_for('serve_video', filename=video.filename, _external=True) }}";
-    navigator.clipboard.writeText(directLink)
-        .then(() => alert('Lien direct copié !'))
-        .catch(err => console.error('Copy failed:', err));
-}
-
-function downloadVideo() {
-    const link = document.createElement('a');
-    link.href = "{{ url_for('serve_video', filename=video.filename) }}";
-    link.download = "{{ video.title or 'video' }}.mp4";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-</script>
+    function copyPageLink() {
+        // Utilisez la variable template Jinja directement
+        const videoId = {{ video.id }};
+        
+        fetch(`/generate_share_link/${videoId}`)
+            .then(response => response.json())
+            .then(data => {
+                navigator.clipboard.writeText(data.share_link)
+                    .then(() => alert('Lien de partage copié !'))
+                    .catch(() => prompt('Copiez ce lien :', data.share_link));
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erreur lors de la génération du lien');
+            });
+    }
+    
+    function copyDirectLink() {
+        const directLink = "{{ url_for('serve_video', filename=video.filename, _external=True) }}";
+        navigator.clipboard.writeText(directLink)
+            .then(() => alert('Lien direct copié !'))
+            .catch(err => console.error('Copy failed:', err));
+    }
+    
+    function downloadVideo() {
+        const link = document.createElement('a');
+        link.href = "{{ url_for('serve_video', filename=video.filename) }}";
+        link.download = "{{ video.title or 'video' }}.mp4";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    </script>
 {% endblock %}
