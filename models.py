@@ -3,6 +3,7 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import ForeignKey
 from sqlalchemy.sql import func
+from flask import url_for  # Ajout de cette importation
 
 db = SQLAlchemy()
 
