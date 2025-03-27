@@ -20,8 +20,8 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     can_upload = db.Column(db.Boolean, default=False)
     is_admin = db.Column(db.Boolean, default=False)
-    # Relation corrigée :
-    created_folders = db.relationship('Folder', backref='creator', lazy=True)
+    # Relation corrigée avec backref uniquement
+    folders = db.relationship('Folder', backref='user', lazy=True)
 
 class Folder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -29,6 +29,10 @@ class Folder(db.Model):
     user_id = db.Column(db.Integer, ForeignKey('user.id'), nullable=False)
     custom_thumbnail = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, server_default=func.now())
+    
+    # Relation avec Video - doit correspondre au backref dans Video
+    videos = db.relationship('Video', backref='folder', lazy=True, order_by='Video.upload_date.desc()')
+
 
     def get_thumbnail(self):
         if self.custom_thumbnail:
@@ -46,10 +50,10 @@ class Video(db.Model):
     upload_date = db.Column(db.DateTime, server_default=func.now())
     processed_path = db.Column(db.String(255), nullable=True)
     is_converted = db.Column(db.Boolean, default=True)
-    views = db.Column(db.Integer, default=0)  # Ceci reste le compteur de vues
+    views = db.Column(db.Integer, default=0)
     folder_id = db.Column(db.Integer, ForeignKey('folder.id'), nullable=True)
-    # Relation modifiée
-    parent_folder = db.relationship('Folder', back_populates='videos')
+    
+    # Relation avec User
     uploader = db.relationship('User', backref='uploaded_videos')
     
 class VideoView(db.Model):
