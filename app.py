@@ -168,14 +168,12 @@ def video_page(video_id):
     video = Video.query.get_or_404(video_id)
     fingerprint = get_client_fingerprint()
     
-    # Vérifie si cette vue existe déjà
     existing_view = VideoView.query.filter_by(
         video_id=video_id,
         fingerprint=fingerprint
     ).first()
 
     if not existing_view:
-        # Nouvelle vue
         video.views += 1
         new_view = VideoView(
             video_id=video_id,

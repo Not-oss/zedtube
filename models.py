@@ -39,7 +39,7 @@ class Video(db.Model):
     upload_date = db.Column(db.DateTime, server_default=func.now())
     processed_path = db.Column(db.String(255), nullable=True)
     is_converted = db.Column(db.Boolean, default=True)
-    views = db.Column(db.Integer, default=0)
+    views = db.Column(db.Integer, default=0)  # Ceci reste le compteur de vues
     folder_id = db.Column(db.Integer, ForeignKey('folder.id'), nullable=True)
     # Relation modifiée
     parent_folder = db.relationship('Folder', back_populates='videos')
@@ -48,10 +48,10 @@ class Video(db.Model):
 class VideoView(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     video_id = db.Column(db.Integer, ForeignKey('video.id'), nullable=False)
-    user_id = db.Column(db.Integer, ForeignKey('user.id'), nullable=True)  # Nullable pour les visiteurs anonymes
+    user_id = db.Column(db.Integer, ForeignKey('user.id'), nullable=True)
     fingerprint = db.Column(db.String(64), index=True)
     viewed_at = db.Column(db.DateTime, server_default=func.now())
     
-    # Relations
-    video = db.relationship('Video', backref='views')
-    user = db.relationship('User', backref='video_views')
+    # Modifiez le nom de la backref pour éviter les conflits
+    video = db.relationship('Video', backref='view_records')
+    user = db.relationship('User', backref='view_history')
