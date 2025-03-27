@@ -1,7 +1,8 @@
 import os
 import time
 from google.cloud import storage
-from google.cloud import video_transcoder_v1
+from google.cloud.video.transcoder_v1 import TranscoderServiceClient
+from google.cloud.video.transcoder_v1 import Job
 
 def upload_to_gcs(local_file_path, bucket_name, destination_blob_name):
     """Upload a file to Google Cloud Storage."""
@@ -20,7 +21,7 @@ def download_from_gcs(bucket_name, source_blob_name, destination_file_path):
 
 def create_transcode_job(input_uri, output_uri, project_id, location="us-central1"):
     """Create a transcoding job with Google Cloud Transcode."""
-    client = video_transcoder_v1.TranscoderServiceClient()
+    client = TranscoderServiceClient()
     parent = f"projects/{project_id}/locations/{location}"
     
     job_config = {
@@ -71,7 +72,7 @@ def create_transcode_job(input_uri, output_uri, project_id, location="us-central
 
 def get_job_status(job_name, project_id, location="us-central1"):
     """Retrieve the status of a transcoding job."""
-    client = video_transcoder_v1.TranscoderServiceClient()
+    client = TranscoderServiceClient()
     parent = f"projects/{project_id}/locations/{location}"
     try:
         job = client.get_job(name=f"{parent}/jobs/{job_name}")
@@ -105,12 +106,12 @@ def process_video_with_transcode(input_file_path, output_file_path, project_id, 
         while attempts < max_attempts:
             status = get_job_status(job_name, project_id, location)
             
-            if status == video_transcoder_v1.Job.ProcessingState.SUCCEEDED:
+            if status == Job.ProcessingState.SUCCEEDED:
                 # Download converted video
                 download_from_gcs(bucket_name, output_blob_name, output_file_path)
                 return True
             
-            if status == video_transcoder_v1.Job.ProcessingState.FAILED:
+            if status == Job.ProcessingState.FAILED:
                 raise Exception("Transcoding job failed")
             
             time.sleep(10)
