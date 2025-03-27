@@ -358,13 +358,10 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 @app.route('/admin/panel')
-@login_required
+@admin_required
 def admin_panel():
-    if not current_user.is_admin:
-        abort(403)  # Forbidden
-    
     videos = Video.query.order_by(Video.upload_date.desc()).all()
-    users = User.query.all()
+    users = User.query.order_by(User.username).all()
     return render_template('admin_panel.html', videos=videos, users=users)
 
 @app.route('/delete_video/<int:video_id>', methods=['POST'])
@@ -417,55 +414,45 @@ def test_upload():
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload_video():
-    if request.method == 'GET':
-        return render_template('upload.html')
-    
     if not current_user.can_upload:
-        return jsonify({'error': "Vous n'avez pas la permission d'uploader"}), 403
+        flash('Vous n\'avez pas les droits d\'upload. Veuillez demander l\'autorisation à l\'administrateur.', 'error')
+        return redirect(url_for('profile'))
     
-    if 'video' not in request.files:
-        return jsonify({'error': 'Aucun fichier vidéo fourni'}), 400
-    
-    video = request.files['video']
-    title = request.form.get('title', '').strip()
-    convert = request.form.get('convert') == 'true'  # Modification ici
-    
-    if video.filename == '':
-        return jsonify({'error': 'Aucun fichier sélectionné'}), 400
-    
-    try:
-        filename = secure_filename(video.filename)
-        original_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        video.save(original_path)
+    if request.method == 'POST':
+        if 'video' not in request.files:
+            flash('Aucun fichier sélectionné', 'error')
+            return redirect(request.url)
         
-        # Ajout d'un log pour vérifier la valeur de convert
-        app.logger.info(f"Conversion demandée: {convert}")
+        file = request.files['video']
+        if file.filename == '':
+            flash('Aucun fichier sélectionné', 'error')
+            return redirect(request.url)
         
-        processed_result = process_video(original_path, app.config['UPLOAD_FOLDER'], convert)
-        
-        if processed_result:
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            
             new_video = Video(
-                filename=os.path.basename(processed_result['video_path']),
-                original_filename=filename,
-                title=title or os.path.splitext(filename)[0],
+                filename=filename,
+                original_filename=file.filename,
+                title=request.form.get('title', ''),
                 user_id=current_user.id,
-                is_converted=convert,
                 folder_id=request.form.get('folder_id') or None
             )
+            
             db.session.add(new_video)
             db.session.commit()
             
-            return jsonify({
-                'message': 'Upload réussi',
-                'file_size': processed_result['processing_estimate']['file_size_mb'],
-                'estimated_time': processed_result['processing_estimate']['estimated_human_readable']
-            }), 200
+            if request.form.get('convert', 'true').lower() == 'true':
+                process_video.delay(filename)
+            
+            flash('Vidéo uploadée avec succès', 'success')
+            return redirect(url_for('home'))
         
-        return jsonify({'error': 'Erreur de traitement vidéo'}), 500
+        flash('Type de fichier non autorisé', 'error')
+        return redirect(request.url)
     
-    except Exception as e:
-        app.logger.error(f"Erreur lors de l'upload: {str(e)}")
-        return jsonify({'error': f'Erreur: {str(e)}'}), 500
+    return render_template('upload.html')
 
 
 @app.route('/embed/<int:video_id>')
@@ -583,6 +570,38 @@ def toggle_folder_privacy(folder_id):
     folder.is_public = not folder.is_public
     db.session.commit()
     return jsonify({'status': 'success', 'is_public': folder.is_public})
+
+@app.route('/admin/approve_upload_request/<int:user_id>', methods=['POST'])
+@admin_required
+def approve_upload_request(user_id):
+    user = User.query.get_or_404(user_id)
+    user.can_upload = True
+    user.upload_requested = False
+    user.upload_requested_date = None
+    db.session.commit()
+    flash(f'Droits d\'upload accordés à {user.username}', 'success')
+    return redirect(url_for('admin_panel'))
+
+@app.route('/admin/reject_upload_request/<int:user_id>', methods=['POST'])
+@admin_required
+def reject_upload_request(user_id):
+    user = User.query.get_or_404(user_id)
+    user.upload_requested = False
+    user.upload_requested_date = None
+    db.session.commit()
+    flash(f'Demande d\'upload rejetée pour {user.username}', 'success')
+    return redirect(url_for('admin_panel'))
+
+@app.route('/admin/toggle_upload_rights/<int:user_id>', methods=['POST'])
+@admin_required
+def toggle_upload_rights(user_id):
+    user = User.query.get_or_404(user_id)
+    user.can_upload = not user.can_upload
+    user.upload_requested = False
+    user.upload_requested_date = None
+    db.session.commit()
+    flash(f'Droits d\'upload {"accordés" if user.can_upload else "retirés"} à {user.username}', 'success')
+    return redirect(url_for('admin_panel'))
 
 
 if __name__ == '__main__':

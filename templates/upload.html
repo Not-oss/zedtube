@@ -4,6 +4,7 @@
     <h2 class="text-2xl mb-6 text-center dark:text-white">Uploader une vidéo</h2>
     
     <form id="uploadForm" method="POST" enctype="multipart/form-data" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
             <label class="block text-sm font-medium dark:text-white mb-1">Titre de la vidéo</label>
             <input type="text" name="title" placeholder="Donnez un titre à votre vidéo" 
@@ -94,6 +95,7 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
     };
     
     xhr.open('POST', '/upload', true);
+    xhr.setRequestHeader('X-CSRFToken', document.querySelector('meta[name="csrf-token"]').content);
     xhr.send(formData);
 });
 
