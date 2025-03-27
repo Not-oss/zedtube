@@ -232,7 +232,7 @@ def register():
     return render_template('register.html')
 
 # Route pour demander les droits d'upload
-@app.route('/request_upload', methods=['POST'])
+@app.route('/request_upload', methods=['GET', 'POST'])
 @login_required
 def request_upload():
     current_user.upload_requested = True
