@@ -4,4 +4,4 @@ static/uploads/*
 static/uploads/
 venv/
 __pycache__/
-
+zedtube-main.code-workspace
