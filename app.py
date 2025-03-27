@@ -3,7 +3,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from flask_wtf.csrf import CSRFProtect
 from functools import wraps
 from urllib.parse import quote
-
+import ffmpeg
 from werkzeug.utils import secure_filename
 from models import db, User, Video, VideoView, Folder  # Ajoutez Folder ici
 from datetime import datetime
@@ -24,6 +24,7 @@ app.config['WTF_CSRF_ENABLED'] = True
 
 # Ensure uploads directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs('static', exist_ok=True)  # Créer le dossier static s'il n'existe pas
 
 # Liste des extensions de fichiers autorisées
 ALLOWED_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'webm'}
@@ -506,6 +507,10 @@ def serve_thumbnail(filename):
         if not os.path.exists(thumbnail_path):
             # Regénérer la thumbnail si manquante
             video_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            if not os.path.exists(video_path):
+                app.logger.error(f"Vidéo non trouvée: {video_path}")
+                return send_from_directory('static', 'default_thumb.jpg')
+            
             try:
                 (
                     ffmpeg
@@ -514,13 +519,16 @@ def serve_thumbnail(filename):
                     .overwrite_output()
                     .run(capture_stdout=True, capture_stderr=True)
                 )
+            except ffmpeg.Error as e:
+                app.logger.error(f"Erreur ffmpeg: {e.stderr.decode() if e.stderr else str(e)}")
+                return send_from_directory('static', 'default_thumb.jpg')
             except Exception as e:
-                print(f"Erreur regénération thumbnail: {e}")
+                app.logger.error(f"Erreur regénération thumbnail: {str(e)}")
                 return send_from_directory('static', 'default_thumb.jpg')
         
         return send_from_directory(app.config['UPLOAD_FOLDER'], thumbnail_filename)
     except Exception as e:
-        print(f"Erreur thumbnail: {e}")
+        app.logger.error(f"Erreur thumbnail: {str(e)}")
         return send_from_directory('static', 'default_thumb.jpg')
 
 # Upload thumbnail de dossier
