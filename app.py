@@ -305,11 +305,12 @@ def delete_video(video_id):
 def test_upload():
     return jsonify({'status': 'success', 'method': request.method})
 
-@app.route('/upload', methods=['GET', 'POST'])  # Les deux méthodes si nécessaire
+@app.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload_video():
     if request.method == 'GET':
         return render_template('upload.html')
+    
     if not current_user.can_upload:
         return jsonify({'error': "Vous n'avez pas la permission d'uploader"}), 403
     
@@ -318,7 +319,7 @@ def upload_video():
     
     video = request.files['video']
     title = request.form.get('title', '').strip()
-    convert = request.form.get('convert', 'true') == 'true'
+    convert = request.form.get('convert') == 'true'  # Modification ici
     
     if video.filename == '':
         return jsonify({'error': 'Aucun fichier sélectionné'}), 400
@@ -328,6 +329,9 @@ def upload_video():
         original_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         video.save(original_path)
         
+        # Ajout d'un log pour vérifier la valeur de convert
+        app.logger.info(f"Conversion demandée: {convert}")
+        
         processed_result = process_video(original_path, app.config['UPLOAD_FOLDER'], convert)
         
         if processed_result:
@@ -336,7 +340,8 @@ def upload_video():
                 original_filename=filename,
                 title=title or os.path.splitext(filename)[0],
                 user_id=current_user.id,
-                is_converted=convert
+                is_converted=convert,
+                folder_id=request.form.get('folder_id') or None
             )
             db.session.add(new_video)
             db.session.commit()
@@ -350,6 +355,7 @@ def upload_video():
         return jsonify({'error': 'Erreur de traitement vidéo'}), 500
     
     except Exception as e:
+        app.logger.error(f"Erreur lors de l'upload: {str(e)}")
         return jsonify({'error': f'Erreur: {str(e)}'}), 500
 
 @app.route('/video/<filename>')
