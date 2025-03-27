@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, abort, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from flask_wtf.csrf import CSRFProtect
 from functools import wraps
 from urllib.parse import quote
 
@@ -19,11 +20,13 @@ app.config['SECRET_KEY'] = 'votre_clé_secrète_ici'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///youtube_clone.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024 * 1024  # 1 Go
+app.config['WTF_CSRF_ENABLED'] = True
 
 # Ensure uploads directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db.init_app(app)
+csrf = CSRFProtect(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
