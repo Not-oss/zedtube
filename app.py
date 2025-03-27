@@ -489,7 +489,10 @@ def upload_video():
             db.session.add(new_video)
             db.session.commit()
             
-            if request.form.get('convert', 'true').lower() == 'true':
+            # Vérifier si la conversion est demandée
+            should_convert = request.form.get('convert') == 'true'
+            
+            if should_convert:
                 try:
                     # Utiliser Google Cloud Transcode pour la conversion
                     output_filename = f"converted_{filename}"
@@ -522,8 +525,9 @@ def upload_video():
                 except Exception as e:
                     app.logger.error(f"Erreur lors du transcodage: {str(e)}")
                     flash(f'Erreur lors de la conversion : {str(e)}', 'error')
+            else:
+                flash('Vidéo uploadée sans conversion', 'success')
             
-            flash('Vidéo uploadée avec succès', 'success')
             return redirect(url_for('home'))
         
         flash('Type de fichier non autorisé', 'error')
