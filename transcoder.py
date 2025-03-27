@@ -1,4 +1,4 @@
-from google.cloud import video_transcoder_v1
+from google.cloud import videointelligence_v1
 from google.cloud import storage
 import os
 import time
@@ -20,6 +20,7 @@ def download_from_gcs(bucket_name, source_blob_name, destination_file_path):
 
 def create_transcode_job(input_uri, output_uri, project_id, location="us-central1"):
     """Crée un job de transcodage avec Google Cloud Transcode."""
+    from google.cloud import video_transcoder_v1
     client = video_transcoder_v1.TranscoderServiceClient()
     parent = f"projects/{project_id}/locations/{location}"
     
@@ -67,6 +68,7 @@ def create_transcode_job(input_uri, output_uri, project_id, location="us-central
 
 def get_job_status(job_name):
     """Récupère l'état d'un job de transcodage."""
+    from google.cloud import video_transcoder_v1
     client = video_transcoder_v1.TranscoderServiceClient()
     response = client.get_job(name=job_name)
     return response.state
