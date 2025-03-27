@@ -6,14 +6,7 @@ from sqlalchemy.sql import func
 
 db = SQLAlchemy()
 
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-    can_upload = db.Column(db.Boolean, default=False)
-    is_admin = db.Column(db.Boolean, default=False)
-    # Relation modifiée avec backref personnalisé
-    created_folders = db.relationship('Folder', back_populates='creator', lazy=True)
+
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -21,15 +14,21 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    can_upload = db.Column(db.Boolean, default=False)
+    is_admin = db.Column(db.Boolean, default=False)
+    # Relation corrigée :
+    created_folders = db.relationship('Folder', backref='creator', lazy=True)
+
 class Folder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, ForeignKey('user.id'), nullable=False)
     custom_thumbnail = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, server_default=func.now())
-    
-    user = db.relationship('User', backref='folders')
-    videos = db.relationship('Video', backref='folder', lazy=True, order_by='Video.upload_date.desc()')
 
     def get_thumbnail(self):
         if self.custom_thumbnail:
@@ -62,4 +61,3 @@ class VideoView(db.Model):
     
     # Modifiez le nom de la backref pour éviter les conflits
     video = db.relationship('Video', backref='view_records')
-    user = db.relationship('User', backref='view_history')
