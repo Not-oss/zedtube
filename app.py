@@ -162,11 +162,6 @@ def move_video(video_id):
     flash('Vidéo déplacée avec succès', 'success')
     return redirect(request.referrer or url_for('home'))
 
-@app.route('/folder/<int:folder_id>')
-def folder_view(folder_id):
-    folder = Folder.query.get_or_404(folder_id)
-    videos = Video.query.filter_by(folder_id=folder_id).order_by(Video.upload_date.desc()).all()
-    return render_template('home.html', videos=videos, selected_folder=folder)
 
 @app.route('/video/<int:video_id>')
 def video_page(video_id):
