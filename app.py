@@ -585,12 +585,13 @@ def toggle_folder_privacy(folder_id):
 if __name__ == '__main__':
     with app.app_context():
         try:
-            # Drop all tables (be careful in production!)
-            # Recreate all tables
+            # Suppression de toutes les tables
+            db.drop_all()
+            # Recréation de toutes les tables
             db.create_all()
-            print("Database initialized successfully")
+            print("Base de données initialisée avec succès")
         except Exception as e:
-            print("Error initializing database:", str(e))
+            print("Erreur lors de l'initialisation de la base de données:", str(e))
             traceback.print_exc()
     
     app.run(host='0.0.0.0', port=8081, debug=True)

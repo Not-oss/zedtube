@@ -34,6 +34,7 @@ class Folder(db.Model):
     user_id = db.Column(db.Integer, ForeignKey('user.id'), nullable=False)
     custom_thumbnail = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, server_default=func.now())
+    is_public = db.Column(db.Boolean, default=False)
     
     # Relation avec les vidéos
     videos = db.relationship('Video', backref='folder', lazy=True, 
