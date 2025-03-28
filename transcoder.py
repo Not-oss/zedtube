@@ -57,7 +57,39 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, locat
         job = transcoder.Job()
         job.input_uri = input_uri
         job.output_uri = output_uri
-        job.template_id = 'preset/web-hd'  # Utilisation du preset web-hd
+        
+        # Configuration personnalisée pour préserver la qualité
+        job.config = transcoder.JobConfig(
+            elementary_streams=[
+                transcoder.ElementaryStream(
+                    key="video-stream0",
+                    video_stream=transcoder.VideoStream(
+                        codec="h264",
+                        bitrate_bps=0,  # 0 pour préserver le bitrate original
+                        frame_rate=0,    # 0 pour préserver les FPS originaux
+                        height_pixels=0, # 0 pour préserver la résolution originale
+                        width_pixels=0,  # 0 pour préserver la résolution originale
+                        pixel_format="yuv420p"
+                    )
+                ),
+                transcoder.ElementaryStream(
+                    key="audio-stream0",
+                    audio_stream=transcoder.AudioStream(
+                        codec="aac",
+                        bitrate_bps=0,    # 0 pour préserver le bitrate original
+                        channel_count=0,   # 0 pour préserver le nombre de canaux original
+                        sample_rate_hz=0   # 0 pour préserver le taux d'échantillonnage original
+                    )
+                )
+            ],
+            mux_streams=[
+                transcoder.MuxStream(
+                    key="sd",
+                    container="mp4",
+                    elementary_streams=["video-stream0", "audio-stream0"]
+                )
+            ]
+        )
         
         response = client.create_job(parent=parent, job=job)
         return response.name
