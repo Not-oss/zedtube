@@ -68,8 +68,7 @@ def get_job_status(job_name: str, project_id: str, location: str = "us-central1"
     """Récupère le statut d'un job de transcodage."""
     try:
         client = transcoder.TranscoderServiceClient()
-        parent = f"projects/{project_id}/locations/{location}"
-        job = client.get_job(name=f"{parent}/jobs/{job_name}")
+        job = client.get_job(name=job_name)
         return job.state
     except Exception as e:
         raise TranscoderError(f"Erreur lors de la récupération du statut: {str(e)}")
@@ -88,6 +87,7 @@ def process_video_with_transcode(input_file_path: str, output_file_path: str, pr
         output_uri = f"gs://{bucket_name}/{output_folder}"
         
         job_name = create_transcode_job(input_uri, output_uri, project_id, location)
+        print(f"Job créé: {job_name}")  # Pour le débogage
         
         max_attempts = 30  # 5 minutes max (10s * 30)
         attempts = 0
