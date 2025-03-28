@@ -1,8 +1,7 @@
 import os
 import time
-import ffmpeg
 from google.cloud import storage
-from google.cloud.video.transcoder_v1 import TranscoderServiceClient, Job
+from google.cloud.video import transcoder
 from typing import Dict, Optional
 
 class TranscoderError(Exception):
@@ -52,54 +51,15 @@ def get_video_info(file_path: str) -> Dict:
 def create_transcode_job(input_uri: str, output_uri: str, project_id: str, location: str = "us-central1") -> str:
     """Crée un job de transcodage avec Google Cloud Transcode."""
     try:
-        client = TranscoderServiceClient()
+        client = transcoder.TranscoderServiceClient()
         parent = f"projects/{project_id}/locations/{location}"
         
-        job_config = {
-            "input_uri": input_uri,
-            "output_uri": output_uri,
-            "config": {
-                "elementary_streams": [
-                    {
-                        "key": "video-stream0",
-                        "video_stream": {
-                            "h264": {
-                                "height_pixels": 720,
-                                "width_pixels": 1280,
-                                "bitrate_bps": 2500000,
-                                "frame_rate": 30
-                            }
-                        }
-                    },
-                    {
-                        "key": "audio-stream0",
-                        "audio_stream": {
-                            "aac": {
-                                "bitrate_bps": 64000,
-                                "sample_rate_hertz": 48000,
-                                "channel_count": 2
-                            }
-                        }
-                    }
-                ],
-                "mux_streams": [
-                    {
-                        "key": "sd",
-                        "container": "mp4",
-                        "elementary_streams": ["video-stream0", "audio-stream0"]
-                    }
-                ]
-            }
-        }
+        job = transcoder.Job()
+        job.input_uri = input_uri
+        job.output_uri = output_uri
+        job.template_id = 'preset/web-hd'  # Utilisation du preset web-hd
         
-        job_name = f"job-{int(time.time())}"
-        response = client.create_job(
-            request={
-                "parent": parent,
-                "job": job_config,
-                "job_id": job_name
-            }
-        )
+        response = client.create_job(parent=parent, job=job)
         return response.name
     except Exception as e:
         raise TranscoderError(f"Erreur lors de la création du job: {str(e)}")
@@ -107,7 +67,7 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, locat
 def get_job_status(job_name: str, project_id: str, location: str = "us-central1") -> Optional[str]:
     """Récupère le statut d'un job de transcodage."""
     try:
-        client = TranscoderServiceClient()
+        client = transcoder.TranscoderServiceClient()
         parent = f"projects/{project_id}/locations/{location}"
         job = client.get_job(name=f"{parent}/jobs/{job_name}")
         return job.state
@@ -133,11 +93,11 @@ def process_video_with_transcode(input_file_path: str, output_file_path: str, pr
         while attempts < max_attempts:
             status = get_job_status(job_name, project_id, location)
             
-            if status == Job.ProcessingState.SUCCEEDED:
+            if status == transcoder.Job.ProcessingState.SUCCEEDED:
                 download_from_gcs(bucket_name, output_blob_name, output_file_path)
                 return True
             
-            if status == Job.ProcessingState.FAILED:
+            if status == transcoder.Job.ProcessingState.FAILED:
                 raise TranscoderError("Le job de transcodage a échoué")
             
             time.sleep(10)
