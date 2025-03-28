@@ -104,14 +104,26 @@ def create_custom_job_template(project_id: str, location: str, template_id: str)
     except Exception as e:
         raise TranscoderError(f"Erreur lors de la création du template: {str(e)}")
 
-def create_transcode_job(input_uri: str, output_uri: str, project_id: str, location: str = "us-central1") -> str:
+def create_transcode_job(input_uri: str, output_uri: str, project_id: str, location: str = "us-central1", local_file_path: str = None) -> str:
     """Crée un job de transcodage avec Google Cloud Transcode."""
     try:
         client = transcoder.TranscoderServiceClient()
         parent = f"projects/{project_id}/locations/{location}"
         
-        # Obtenir les informations de la vidéo source
-        video_info = get_video_info(input_uri)
+        # Obtenir les informations de la vidéo source depuis le fichier local
+        if local_file_path:
+            video_info = get_video_info(local_file_path)
+        else:
+            # Valeurs par défaut si pas de fichier local
+            video_info = {
+                'width': 1920,
+                'height': 1080,
+                'fps': 30,
+                'bitrate': 8000000,
+                'audio_bitrate': 192000,
+                'audio_channels': 2,
+                'audio_sample_rate': 48000
+            }
         
         # Créer le job avec une configuration directe
         job = transcoder.Job()
@@ -182,7 +194,8 @@ def process_video_with_transcode(input_file_path: str, output_file_path: str, pr
         output_folder = f"output/{int(time.time())}/"
         output_uri = f"gs://{bucket_name}/{output_folder}"
         
-        job_name = create_transcode_job(input_uri, output_uri, project_id, location)
+        # Passer le chemin du fichier local pour l'analyse
+        job_name = create_transcode_job(input_uri, output_uri, project_id, location, input_file_path)
         print(f"Job créé: {job_name}")  # Pour le débogage
         
         max_attempts = 30  # 5 minutes max (10s * 30)
