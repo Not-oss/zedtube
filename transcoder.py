@@ -109,29 +109,25 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, locat
         client = transcoder.TranscoderServiceClient()
         parent = f"projects/{project_id}/locations/{location}"
         
-        # Créer d'abord le template personnalisé
-        template_id = "high-quality-preset"
-        try:
-            create_custom_job_template(project_id, location, template_id)
-        except Exception as e:
-            print(f"Le template existe peut-être déjà: {str(e)}")
+        # Obtenir les informations de la vidéo source
+        video_info = get_video_info(input_uri)
         
-        # Créer le job avec une configuration directe au lieu d'utiliser un template
+        # Créer le job avec une configuration directe
         job = transcoder.Job()
         job.input_uri = input_uri
         job.output_uri = output_uri
         
-        # Configuration directe du job
+        # Configuration directe du job avec les caractéristiques de la source
         job.config = transcoder.JobConfig(
             elementary_streams=[
                 transcoder.ElementaryStream(
                     key="video-stream0",
                     video_stream=transcoder.VideoStream(
                         h264=transcoder.VideoStream.H264CodecSettings(
-                            height_pixels=1080,
-                            width_pixels=1920,
-                            bitrate_bps=8000000,
-                            frame_rate=60,
+                            height_pixels=video_info['height'],
+                            width_pixels=video_info['width'],
+                            bitrate_bps=video_info['bitrate'],
+                            frame_rate=video_info['fps'],
                             allow_open_gop=True,
                             gop_duration=2,
                             profile="high",
@@ -143,9 +139,9 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, locat
                     key="audio-stream0",
                     audio_stream=transcoder.AudioStream(
                         codec="aac",
-                        bitrate_bps=192000,
-                        sample_rate_hertz=48000,
-                        channel_count=2,
+                        bitrate_bps=video_info['audio_bitrate'],
+                        sample_rate_hertz=video_info['audio_sample_rate'],
+                        channel_count=video_info['audio_channels'],
                     ),
                 ),
             ],
