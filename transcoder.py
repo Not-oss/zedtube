@@ -111,7 +111,7 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, locat
         client = transcoder.TranscoderServiceClient()
         parent = f"projects/{project_id}/locations/{location}"
         
-        # Configuration pour 1080p 240fps
+        # Configuration pour 1080p 120fps
         job = transcoder.Job()
         job.input_uri = input_uri
         job.output_uri = output_uri
@@ -128,8 +128,8 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, locat
                         h264=transcoder.VideoStream.H264CodecSettings(
                             height_pixels=1080,    # 1080p
                             width_pixels=1920,     # 16:9
-                            bitrate_bps=12000000,  # 12 Mbps pour 240fps
-                            frame_rate=240,        # 240 FPS
+                            bitrate_bps=12000000,  # 12 Mbps pour 120fps
+                            frame_rate=120,        # 120 FPS (maximum supporté)
                             allow_open_gop=True,   # Optimisation pour le streaming
                             gop_duration=gop_duration,  # GOP de 2 secondes
                             profile="high",        # Profil H.264 haute qualité
