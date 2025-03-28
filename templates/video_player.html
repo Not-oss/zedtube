@@ -40,7 +40,7 @@
                         <div id="moveMenu" class="hidden absolute right-0 mt-2 w-48 bg-[#2C2C2C] rounded-lg shadow-lg z-50">
                             <form method="POST" action="{{ url_for('move_video', video_id=video.id) }}" class="p-2">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <select name="folder_id" class="w-full p-2 bg-[#1E1E1E] border border-[#3C3C3C] rounded text-white text-sm">
+                                <select name="folder_id" class="w-full p-2 bg-[#1E1E1E] border border-[#3C3C3C] rounded text-white text-sm mb-2">
                                     <option value="">Aucun dossier</option>
                                     {% for folder in folders|sort(attribute='name') %}
                                     <option value="{{ folder.id }}" {% if video.folder_id == folder.id %}selected{% endif %}>
@@ -48,8 +48,8 @@
                                     </option>
                                     {% endfor %}
                                 </select>
-                                <button type="submit" class="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
-                                    Confirmer
+                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors">
+                                    Confirmer le déplacement
                                 </button>
                             </form>
                         </div>
