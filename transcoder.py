@@ -4,6 +4,7 @@ import ffmpeg
 from google.cloud import storage
 from google.cloud.video import transcoder
 from typing import Dict, Optional
+from google.protobuf import duration_pb2
 
 class TranscoderError(Exception):
     """Exception personnalisée pour les erreurs de transcodage."""
@@ -115,6 +116,9 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, locat
         job.input_uri = input_uri
         job.output_uri = output_uri
         
+        # Créer la durée du GOP en secondes
+        gop_duration = duration_pb2.Duration(seconds=2)
+        
         # Configuration directe du job avec les paramètres optimisés
         job.config = transcoder.JobConfig(
             elementary_streams=[
@@ -127,7 +131,7 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, locat
                             bitrate_bps=12000000,  # 12 Mbps pour 240fps
                             frame_rate=240,        # 240 FPS
                             allow_open_gop=True,   # Optimisation pour le streaming
-                            gop_duration=2,        # GOP court pour une meilleure qualité
+                            gop_duration=gop_duration,  # GOP de 2 secondes
                             profile="high",        # Profil H.264 haute qualité
                         ),
                     ),
