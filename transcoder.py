@@ -110,41 +110,25 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, locat
         client = transcoder.TranscoderServiceClient()
         parent = f"projects/{project_id}/locations/{location}"
         
-        # Obtenir les informations de la vidéo source depuis le fichier local
-        if local_file_path:
-            video_info = get_video_info(local_file_path)
-        else:
-            # Valeurs par défaut si pas de fichier local
-            video_info = {
-                'width': 1920,
-                'height': 1080,
-                'fps': 30,
-                'bitrate': 8000000,
-                'audio_bitrate': 192000,
-                'audio_channels': 2,
-                'audio_sample_rate': 48000
-            }
-        
-        # Créer le job avec une configuration directe
+        # Configuration pour 1080p 240fps
         job = transcoder.Job()
         job.input_uri = input_uri
         job.output_uri = output_uri
         
-        # Configuration directe du job avec les caractéristiques de la source
+        # Configuration directe du job avec les paramètres optimisés
         job.config = transcoder.JobConfig(
             elementary_streams=[
                 transcoder.ElementaryStream(
                     key="video-stream0",
                     video_stream=transcoder.VideoStream(
                         h264=transcoder.VideoStream.H264CodecSettings(
-                            height_pixels=video_info['height'],
-                            width_pixels=video_info['width'],
-                            bitrate_bps=video_info['bitrate'],
-                            frame_rate=video_info['fps'],
-                            allow_open_gop=True,
-                            gop_duration=2,
-                            profile="high",
-                            level="4.1",
+                            height_pixels=1080,    # 1080p
+                            width_pixels=1920,     # 16:9
+                            bitrate_bps=12000000,  # 12 Mbps pour 240fps
+                            frame_rate=240,        # 240 FPS
+                            allow_open_gop=True,   # Optimisation pour le streaming
+                            gop_duration=2,        # GOP court pour une meilleure qualité
+                            profile="high",        # Profil H.264 haute qualité
                         ),
                     ),
                 ),
@@ -152,9 +136,9 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, locat
                     key="audio-stream0",
                     audio_stream=transcoder.AudioStream(
                         codec="aac",
-                        bitrate_bps=video_info['audio_bitrate'],
-                        sample_rate_hertz=video_info['audio_sample_rate'],
-                        channel_count=video_info['audio_channels'],
+                        bitrate_bps=320000,       # 320 kbps pour l'audio
+                        sample_rate_hertz=48000,  # 48 kHz
+                        channel_count=2,          # Stéréo
                     ),
                 ),
             ],
