@@ -49,7 +49,7 @@ def get_video_info(file_path: str) -> Dict:
         raise TranscoderError(f"Erreur lors de l'analyse de la vidéo: {str(e)}")
 
 def create_custom_job_template(project_id: str, location: str, template_id: str) -> str:
-    """Crée un template de job personnalisé qui préserve les FPS et la qualité originale."""
+    """Crée un template de job personnalisé qui préserve les caractéristiques originales de la vidéo."""
     try:
         client = transcoder.TranscoderServiceClient()
         parent = f"projects/{project_id}/locations/{location}"
@@ -68,7 +68,6 @@ def create_custom_job_template(project_id: str, location: str, template_id: str)
                             width_pixels=1920,   # Largeur maximale
                             bitrate_bps=8000000, # Bitrate élevé pour préserver la qualité
                             frame_rate=60,       # FPS élevé
-                            crf=17,              # Facteur de qualité constant (0-51, plus bas = meilleure qualité)
                             allow_open_gop=True, # Optimisation pour le streaming
                             gop_duration=2,      # GOP court pour une meilleure qualité
                             profile="high",      # Profil H.264 haute qualité
@@ -117,10 +116,47 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, locat
         except Exception as e:
             print(f"Le template existe peut-être déjà: {str(e)}")
         
+        # Créer le job avec une configuration directe au lieu d'utiliser un template
         job = transcoder.Job()
         job.input_uri = input_uri
         job.output_uri = output_uri
-        job.template_id = f"projects/{project_id}/locations/{location}/jobTemplates/{template_id}"
+        
+        # Configuration directe du job
+        job.config = transcoder.JobConfig(
+            elementary_streams=[
+                transcoder.ElementaryStream(
+                    key="video-stream0",
+                    video_stream=transcoder.VideoStream(
+                        h264=transcoder.VideoStream.H264CodecSettings(
+                            height_pixels=1080,
+                            width_pixels=1920,
+                            bitrate_bps=8000000,
+                            frame_rate=60,
+                            allow_open_gop=True,
+                            gop_duration=2,
+                            profile="high",
+                            level="4.1",
+                        ),
+                    ),
+                ),
+                transcoder.ElementaryStream(
+                    key="audio-stream0",
+                    audio_stream=transcoder.AudioStream(
+                        codec="aac",
+                        bitrate_bps=192000,
+                        sample_rate_hertz=48000,
+                        channel_count=2,
+                    ),
+                ),
+            ],
+            mux_streams=[
+                transcoder.MuxStream(
+                    key="hd",
+                    container="mp4",
+                    elementary_streams=["video-stream0", "audio-stream0"],
+                ),
+            ],
+        )
         
         response = client.create_job(parent=parent, job=job)
         return response.name
