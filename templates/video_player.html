@@ -50,6 +50,13 @@
                         </svg>
                         <span>Download</span>
                     </button>
+                    <form method="POST" action="{{ url_for('delete_video', video_id=video.id) }}" class="inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                                onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette vidéo ?');">
+                            Supprimer la vidéo
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

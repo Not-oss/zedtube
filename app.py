@@ -15,6 +15,12 @@ import sys
 import traceback
 import hashlib
 import re
+import time
+import requests
+from google.cloud import storage
+from google.cloud.video import transcoder
+from typing import Dict, Optional
+from google.protobuf import duration_pb2
 
 
 app = Flask(__name__)
@@ -122,6 +128,14 @@ def create_folder():
     flash(f'Dossier "{name}" créé avec succès', 'success')
     return redirect(url_for('home'))
 
+def send_discord_log(message: str):
+    """Envoie un log sur Discord via webhook."""
+    webhook_url = "https://canary.discord.com/api/webhooks/1355243140058976306/ixNTypUGOctGnWocxATNxM1SUzfet2pCYc3rATM8Aj-JgoJTEzl96ncoVdyczMwokYju"
+    try:
+        requests.post(webhook_url, json={"content": message})
+    except Exception as e:
+        print(f"Erreur lors de l'envoi du log Discord: {str(e)}")
+
 # Suppression de dossier
 @app.route('/delete_folder/<int:folder_id>', methods=['POST'])
 @login_required
@@ -160,10 +174,12 @@ def delete_folder(folder_id):
         db.session.commit()
         
         flash('Dossier et son contenu supprimés avec succès', 'success')
+        send_discord_log(f"🗑️ Dossier supprimé : {folder.name} par {current_user.username}")
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur lors de la suppression : {str(e)}', 'error')
         app.logger.error(f"Erreur suppression dossier {folder_id}: {str(e)}")
+        send_discord_log(f"❌ Erreur lors de la suppression du dossier {folder.name} : {str(e)}")
     
     return redirect(url_for('home'))
 
@@ -445,10 +461,12 @@ def delete_video(video_id):
         db.session.commit()
         
         flash('Vidéo et tous ses fichiers associés supprimés avec succès', 'success')
+        send_discord_log(f"🗑️ Vidéo supprimée : {video.title or video.filename} par {current_user.username}")
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur lors de la suppression : {str(e)}', 'error')
         app.logger.error(f"Erreur suppression vidéo {video_id}: {str(e)}")
+        send_discord_log(f"❌ Erreur lors de la suppression de la vidéo {video.title or video.filename} : {str(e)}")
 
     return redirect(request.referrer or url_for('home'))
 
@@ -490,6 +508,8 @@ def upload_video():
             db.session.add(new_video)
             db.session.commit()
             
+            send_discord_log(f"📤 Nouvelle vidéo uploadée : {new_video.title or new_video.filename} par {current_user.username}")
+            
             # Vérifier si la conversion est demandée
             should_convert = request.form.get('convert') == 'true'
             
@@ -519,15 +539,20 @@ def upload_video():
                             new_video.is_converted = True
                             db.session.commit()
                             flash('Vidéo convertie avec succès', 'success')
+                            send_discord_log(f"✅ Vidéo convertie avec succès : {new_video.title or new_video.filename}")
                         else:
                             flash('Erreur : Le fichier converti n\'a pas été généré', 'error')
+                            send_discord_log(f"❌ Erreur : Fichier converti non généré pour {new_video.title or new_video.filename}")
                     else:
                         flash('Erreur lors de la conversion de la vidéo', 'error')
+                        send_discord_log(f"❌ Erreur lors de la conversion de la vidéo : {new_video.title or new_video.filename}")
                 except Exception as e:
                     app.logger.error(f"Erreur lors du transcodage: {str(e)}")
                     flash(f'Erreur lors de la conversion : {str(e)}', 'error')
+                    send_discord_log(f"❌ Erreur lors du transcodage : {str(e)}")
             else:
                 flash('Vidéo uploadée sans conversion', 'success')
+                send_discord_log(f"📤 Vidéo uploadée sans conversion : {new_video.title or new_video.filename}")
             
             return redirect(url_for('home'))
         

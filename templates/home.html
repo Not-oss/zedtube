@@ -53,6 +53,7 @@
                     
                     <form method="POST" action="{{ url_for('delete_folder', folder_id=folder.id) }}"
                           data-action="delete">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" 
                                 class="bg-black/70 hover:bg-red-600 text-white p-1.5 rounded-full"
                                 onclick="return confirm('Supprimer ce dossier et TOUTES ses vidéos?');">
