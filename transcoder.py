@@ -83,8 +83,9 @@ def process_video_with_transcode(input_file_path: str, output_file_path: str, pr
         input_blob_name = f"input/{os.path.basename(input_file_path)}"
         input_uri = upload_to_gcs(input_file_path, bucket_name, input_blob_name)
         
-        output_blob_name = f"output/{os.path.basename(output_file_path)}"
-        output_uri = f"gs://{bucket_name}/{output_blob_name}"
+        # Création d'un dossier unique pour la sortie
+        output_folder = f"output/{int(time.time())}/"
+        output_uri = f"gs://{bucket_name}/{output_folder}"
         
         job_name = create_transcode_job(input_uri, output_uri, project_id, location)
         
@@ -94,6 +95,8 @@ def process_video_with_transcode(input_file_path: str, output_file_path: str, pr
             status = get_job_status(job_name, project_id, location)
             
             if status == transcoder.Job.ProcessingState.SUCCEEDED:
+                # Le fichier converti sera dans le dossier avec le même nom que l'entrée
+                output_blob_name = f"{output_folder}{os.path.basename(output_file_path)}"
                 download_from_gcs(bucket_name, output_blob_name, output_file_path)
                 return True
             
