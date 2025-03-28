@@ -63,8 +63,7 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, video
                     {
                         "key": "video-stream0",
                         "video_stream": {
-                            "codec": "h264",
-                            "h264_settings": {
+                            "h264": {
                                 "bitrate_bps": video_info['bitrate'],
                                 "frame_rate": video_info['fps'],
                                 "height_pixels": video_info['height'],
@@ -75,10 +74,10 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, video
                     {
                         "key": "audio-stream0",
                         "audio_stream": {
-                            "codec": "aac",
-                            "aac_settings": {
+                            "aac": {
                                 "bitrate_bps": video_info['audio_bitrate'],
-                                "sample_rate_hertz": video_info['audio_sample_rate']
+                                "sample_rate_hertz": video_info['audio_sample_rate'],
+                                "channel_count": video_info['audio_channels']
                             }
                         }
                     }
