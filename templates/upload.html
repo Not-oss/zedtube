@@ -1,18 +1,35 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
-    <h2 class="text-2xl mb-6 text-center dark:text-white">Uploader une vidéo</h2>
-    
-    <form id="uploadForm" method="POST" enctype="multipart/form-data" class="space-y-4">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div>
-            <label class="block text-sm font-medium dark:text-white mb-1">Titre de la vidéo</label>
-            <input type="text" name="title" placeholder="Donnez un titre à votre vidéo" 
-                   class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+<div class="container mx-auto max-w-2xl py-8 px-4">
+    <div class="bg-[#1E1E1E] rounded-lg p-6 space-y-6">
+        <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-bold text-white">Upload de vidéo</h2>
+            <a href="{{ url_for('home') }}" class="text-gray-400 hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+            </a>
         </div>
-        
-        <div>
-            <label class="block text-sm font-medium dark:text-white mb-1">Fichier vidéo</label>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-4 rounded-lg text-sm {{ 'bg-red-500/10 border border-red-500/50 text-red-400' if category == 'error' else 'bg-green-500/10 border border-green-500/50 text-green-400' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" enctype="multipart/form-data" id="uploadForm" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div>
+                <label class="block text-sm font-medium dark:text-white mb-1">Titre de la vidéo</label>
+                <input type="text" name="title" 
+                       class="w-full p-2 bg-[#2C2C2C] border border-[#3C3C3C] rounded text-white">
+            </div>
+
             <div class="flex items-center justify-center w-full">
                 <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
                     <div class="flex flex-col items-center justify-center pt-5 pb-6">
@@ -25,103 +42,87 @@
                     <input id="videoFile" name="video" type="file" class="hidden" accept="video/*" required>
                 </label>
             </div>
-        </div>
 
-        <div class="flex items-center space-x-2">
-            <input type="checkbox" id="convertVideo" name="convert" value="true" checked 
-                   class="form-checkbox h-5 w-5 text-blue-600 dark:bg-gray-700 dark:border-gray-600">
-            <label for="convertVideo" class="dark:text-white">
-                Convertir la vidéo (recommandé) - Compatible tous appareils
-            </label>
-        </div>
-        <p class="text-sm text-gray-500 dark:text-gray-400 ml-7">
-            Note : Les vidéos avec plus de 120 FPS seront automatiquement réduites à 120 FPS pour une meilleure compatibilité
-        </p>
-        
-        <div>
-            <label class="block text-sm font-medium dark:text-white mb-1">Dossier</label>
-            <select name="folder_id" class="w-full p-2 bg-[#2C2C2C] border border-[#3C3C3C] rounded text-white">
-                <option value="">Aucun dossier</option>
-                {% for folder in current_user.folders|sort(attribute='name') %}
-                <option value="{{ folder.id }}">{{ folder.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        
-        <button type="submit" 
-                class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-700">
-            Commencer l'upload
-        </button>
-    </form>
-
-    <div id="uploadProgress" class="hidden mt-6 space-y-4">
-        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-            <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
-        </div>
-        <div class="flex justify-between items-center">
-            <p id="progressStatus" class="text-sm dark:text-white">Préparation de l'upload...</p>
-            <p id="progressPercentage" class="text-sm dark:text-white">0%</p>
-        </div>
-        <div id="conversionStatus" class="hidden">
-            <div class="flex items-center space-x-2 text-yellow-400">
-                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Conversion en cours...</span>
+            <div class="flex items-center space-x-2">
+                <input type="checkbox" id="convertVideo" name="convert" value="true" checked 
+                       class="form-checkbox h-5 w-5 text-blue-600 dark:bg-gray-700 dark:border-gray-600">
+                <label for="convertVideo" class="dark:text-white">
+                    Convertir la vidéo (recommandé) - Compatible tous appareils
+                </label>
             </div>
-        </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400 ml-7">
+                Note : Les vidéos avec plus de 120 FPS seront automatiquement réduites à 120 FPS pour une meilleure compatibilité
+            </p>
+            
+            <div>
+                <label class="block text-sm font-medium dark:text-white mb-1">Dossier</label>
+                <select name="folder_id" class="w-full p-2 bg-[#2C2C2C] border border-[#3C3C3C] rounded text-white">
+                    <option value="">Aucun dossier</option>
+                    {% for folder in current_user.folders|sort(attribute='name') %}
+                    <option value="{{ folder.id }}">{{ folder.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Barre de progression -->
+            <div id="progressContainer" class="hidden">
+                <div class="flex justify-between text-sm text-gray-400 mb-1">
+                    <span>Progression du transcodage</span>
+                    <span id="progressText">0%</span>
+                </div>
+                <div class="w-full bg-[#2C2C2C] rounded-full h-2.5">
+                    <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <button type="submit" 
+                    class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-700">
+                Commencer l'upload
+            </button>
+        </form>
     </div>
 </div>
 
 <script>
 document.getElementById('uploadForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const progressBar = document.getElementById('progressBar');
-    const progressStatus = document.getElementById('progressStatus');
-    const progressPercentage = document.getElementById('progressPercentage');
-    const conversionStatus = document.getElementById('conversionStatus');
-    const uploadForm = document.getElementById('uploadForm');
-    const uploadProgress = document.getElementById('uploadProgress');
-    
-    uploadForm.classList.add('hidden');
-    uploadProgress.classList.remove('hidden');
-    
-    const xhr = new XMLHttpRequest();
-    
-    xhr.upload.onprogress = function(e) {
-        if (e.lengthComputable) {
-            const percentComplete = (e.loaded / e.total) * 100;
-            progressBar.style.width = percentComplete + '%';
-            progressPercentage.textContent = Math.round(percentComplete) + '%';
-            progressStatus.textContent = 'Upload en cours';
-        }
-    };
-    
-    xhr.onload = function() {
-        if (xhr.status === 200) {
-            if (formData.get('convert') === 'true') {
-                progressStatus.textContent = 'Conversion en cours...';
-                conversionStatus.classList.remove('hidden');
-                progressBar.style.width = '100%';
-                progressPercentage.textContent = '100%';
-            } else {
-                progressStatus.textContent = 'Upload terminé! Redirection...';
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 1500);
+    const convertVideo = document.getElementById('convertVideo').checked;
+    if (convertVideo) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        
+        progressContainer.classList.remove('hidden');
+        
+        // Simuler la progression pendant l'upload
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 10;
+            if (progress > 90) {
+                clearInterval(interval);
             }
-        } else {
-            progressStatus.textContent = 'Erreur lors de l\'upload';
-            console.error(xhr.responseText);
-        }
-    };
-    
-    xhr.open('POST', '/upload', true);
-    xhr.setRequestHeader('X-CSRFToken', document.querySelector('meta[name="csrf-token"]').content);
-    xhr.send(formData);
+            progressBar.style.width = Math.min(progress, 90) + '%';
+            progressText.textContent = Math.round(Math.min(progress, 90)) + '%';
+        }, 1000);
+        
+        // Envoyer le formulaire
+        fetch(this.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            clearInterval(interval);
+            progressBar.style.width = '100%';
+            progressText.textContent = '100%';
+            window.location.href = '/';
+        })
+        .catch(error => {
+            clearInterval(interval);
+            progressBar.style.backgroundColor = '#ef4444';
+            progressText.textContent = 'Erreur';
+        });
+    }
 });
 
 document.getElementById('videoFile').addEventListener('change', function(e) {

@@ -226,7 +226,15 @@ def video_page(video_id):
         db.session.add(new_view)
         db.session.commit()
 
-    return render_template('video_player.html', video=video)
+    # Récupérer tous les dossiers pour le menu de déplacement
+    folders = []
+    if current_user.is_authenticated:
+        folders = Folder.query.filter(
+            (Folder.user_id == current_user.id) | 
+            (Folder.is_public == True)
+        ).order_by(Folder.name).all()
+
+    return render_template('video_player.html', video=video, folders=folders)
 
 
 @app.route('/register', methods=['GET', 'POST'])
