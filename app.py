@@ -3,6 +3,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from flask_wtf.csrf import CSRFProtect
 from functools import wraps
 from urllib.parse import quote
+import ffmpeg
 
 from werkzeug.utils import secure_filename
 from models import db, User, Video, VideoView, Folder  # Ajoutez Folder ici
@@ -652,6 +653,33 @@ def toggle_folder_privacy(folder_id):
     db.session.commit()
     return jsonify({'status': 'success', 'is_public': folder.is_public})
 
+@app.route('/change_password', methods=['POST'])
+@login_required
+def change_password():
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    if not new_password or not confirm_password:
+        flash('Veuillez remplir tous les champs', 'error')
+        return redirect(url_for('profile'))
+    
+    if new_password != confirm_password:
+        flash('Les mots de passe ne correspondent pas', 'error')
+        return redirect(url_for('profile'))
+    
+    if len(new_password) < 8:
+        flash('Le mot de passe doit contenir au moins 8 caractères', 'error')
+        return redirect(url_for('profile'))
+    
+    try:
+        current_user.set_password(new_password)
+        db.session.commit()
+        flash('Mot de passe modifié avec succès', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Erreur lors de la modification du mot de passe', 'error')
+    
+    return redirect(url_for('profile'))
 
 if __name__ == '__main__':
     with app.app_context():
