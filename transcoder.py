@@ -49,7 +49,7 @@ def get_video_info(file_path: str) -> Dict:
     except Exception as e:
         raise TranscoderError(f"Erreur lors de l'analyse de la vidéo: {str(e)}")
 
-def create_transcode_job(input_uri: str, output_uri: str, project_id: str, video_info: Dict, location: str = "us-central1") -> str:
+def create_transcode_job(input_uri: str, output_uri: str, project_id: str, location: str = "us-central1") -> str:
     """Crée un job de transcodage avec Google Cloud Transcode."""
     try:
         client = TranscoderServiceClient()
@@ -63,20 +63,22 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, video
                     {
                         "key": "video-stream0",
                         "video_stream": {
-                            "codec": "h264",
-                            "bitrate_bps": video_info['bitrate'],
-                            "frame_rate": video_info['fps'],
-                            "height_pixels": video_info['height'],
-                            "width_pixels": video_info['width'],
+                            "h264": {
+                                "height_pixels": 720,
+                                "width_pixels": 1280,
+                                "bitrate_bps": 2500000,
+                                "frame_rate": 30
+                            }
                         }
                     },
                     {
                         "key": "audio-stream0",
                         "audio_stream": {
-                            "codec": "aac",
-                            "bitrate_bps": video_info['audio_bitrate'],
-                            "sample_rate_hertz": video_info['audio_sample_rate'],
-                            "channel_count": video_info['audio_channels']
+                            "aac": {
+                                "bitrate_bps": 64000,
+                                "sample_rate_hertz": 48000,
+                                "channel_count": 2
+                            }
                         }
                     }
                 ],
@@ -84,7 +86,7 @@ def create_transcode_job(input_uri: str, output_uri: str, project_id: str, video
                     {
                         "key": "sd",
                         "container": "mp4",
-                        "elementary_streams": ["video-stream0", "audio-stream0"],
+                        "elementary_streams": ["video-stream0", "audio-stream0"]
                     }
                 ]
             }
@@ -118,16 +120,13 @@ def process_video_with_transcode(input_file_path: str, output_file_path: str, pr
         if not os.path.exists(input_file_path):
             raise TranscoderError(f"Fichier d'entrée non trouvé: {input_file_path}")
 
-        video_info = get_video_info(input_file_path)
-        print(f"Informations vidéo: {video_info}")
-
         input_blob_name = f"input/{os.path.basename(input_file_path)}"
         input_uri = upload_to_gcs(input_file_path, bucket_name, input_blob_name)
         
         output_blob_name = f"output/{os.path.basename(output_file_path)}"
         output_uri = f"gs://{bucket_name}/{output_blob_name}"
         
-        job_name = create_transcode_job(input_uri, output_uri, project_id, video_info, location)
+        job_name = create_transcode_job(input_uri, output_uri, project_id, location)
         
         max_attempts = 30  # 5 minutes max (10s * 30)
         attempts = 0
