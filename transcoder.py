@@ -48,48 +48,79 @@ def get_video_info(file_path: str) -> Dict:
     except Exception as e:
         raise TranscoderError(f"Erreur lors de l'analyse de la vidéo: {str(e)}")
 
+def create_custom_job_template(project_id: str, location: str, template_id: str) -> str:
+    """Crée un template de job personnalisé qui préserve les FPS et la qualité originale."""
+    try:
+        client = transcoder.TranscoderServiceClient()
+        parent = f"projects/{project_id}/locations/{location}"
+        
+        job_template = transcoder.JobTemplate()
+        job_template.name = f"projects/{project_id}/locations/{location}/jobTemplates/{template_id}"
+        
+        # Configuration du template
+        job_template.config = transcoder.JobConfig(
+            elementary_streams=[
+                transcoder.ElementaryStream(
+                    key="video-stream0",
+                    video_stream=transcoder.VideoStream(
+                        h264=transcoder.VideoStream.H264CodecSettings(
+                            height_pixels=1080,  # Hauteur maximale
+                            width_pixels=1920,   # Largeur maximale
+                            bitrate_bps=8000000, # Bitrate élevé pour préserver la qualité
+                            frame_rate=60,       # FPS élevé
+                            crf=17,              # Facteur de qualité constant (0-51, plus bas = meilleure qualité)
+                            allow_open_gop=True, # Optimisation pour le streaming
+                            gop_duration=2,      # GOP court pour une meilleure qualité
+                            profile="high",      # Profil H.264 haute qualité
+                            level="4.1",         # Niveau compatible avec la plupart des appareils
+                        ),
+                    ),
+                ),
+                transcoder.ElementaryStream(
+                    key="audio-stream0",
+                    audio_stream=transcoder.AudioStream(
+                        codec="aac",
+                        bitrate_bps=192000,      # Bitrate audio élevé
+                        sample_rate_hertz=48000, # Taux d'échantillonnage standard
+                        channel_count=2,         # Stéréo
+                    ),
+                ),
+            ],
+            mux_streams=[
+                transcoder.MuxStream(
+                    key="hd",
+                    container="mp4",
+                    elementary_streams=["video-stream0", "audio-stream0"],
+                ),
+            ],
+        )
+        
+        response = client.create_job_template(
+            parent=parent,
+            job_template=job_template,
+            job_template_id=template_id
+        )
+        return response.name
+    except Exception as e:
+        raise TranscoderError(f"Erreur lors de la création du template: {str(e)}")
+
 def create_transcode_job(input_uri: str, output_uri: str, project_id: str, location: str = "us-central1") -> str:
     """Crée un job de transcodage avec Google Cloud Transcode."""
     try:
         client = transcoder.TranscoderServiceClient()
         parent = f"projects/{project_id}/locations/{location}"
         
+        # Créer d'abord le template personnalisé
+        template_id = "high-quality-preset"
+        try:
+            create_custom_job_template(project_id, location, template_id)
+        except Exception as e:
+            print(f"Le template existe peut-être déjà: {str(e)}")
+        
         job = transcoder.Job()
         job.input_uri = input_uri
         job.output_uri = output_uri
-        
-        # Configuration personnalisée pour préserver la qualité
-        job.config = transcoder.JobConfig(
-            elementary_streams=[
-                transcoder.ElementaryStream(
-                    key="video-stream0",
-                    video_stream=transcoder.VideoStream(
-                        codec="h264",
-                        bitrate_bps=0,  # 0 pour préserver le bitrate original
-                        frame_rate=0,    # 0 pour préserver les FPS originaux
-                        height_pixels=0, # 0 pour préserver la résolution originale
-                        width_pixels=0,  # 0 pour préserver la résolution originale
-                        pixel_format="yuv420p"
-                    )
-                ),
-                transcoder.ElementaryStream(
-                    key="audio-stream0",
-                    audio_stream=transcoder.AudioStream(
-                        codec="aac",
-                        bitrate_bps=0,    # 0 pour préserver le bitrate original
-                        channel_count=0,   # 0 pour préserver le nombre de canaux original
-                        sample_rate_hz=0   # 0 pour préserver le taux d'échantillonnage original
-                    )
-                )
-            ],
-            mux_streams=[
-                transcoder.MuxStream(
-                    key="sd",
-                    container="mp4",
-                    elementary_streams=["video-stream0", "audio-stream0"]
-                )
-            ]
-        )
+        job.template_id = f"projects/{project_id}/locations/{location}/jobTemplates/{template_id}"
         
         response = client.create_job(parent=parent, job=job)
         return response.name
