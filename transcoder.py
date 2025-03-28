@@ -95,9 +95,23 @@ def process_video_with_transcode(input_file_path: str, output_file_path: str, pr
             status = get_job_status(job_name, project_id, location)
             
             if status == transcoder.Job.ProcessingState.SUCCEEDED:
-                # Le fichier converti sera dans le dossier avec le même nom que l'entrée
-                output_blob_name = f"{output_folder}{os.path.basename(output_file_path)}"
-                download_from_gcs(bucket_name, output_blob_name, output_file_path)
+                # Lister les fichiers dans le dossier de sortie
+                storage_client = storage.Client()
+                bucket = storage_client.bucket(bucket_name)
+                blobs = bucket.list_blobs(prefix=output_folder)
+                
+                # Trouver le fichier MP4 généré
+                output_blob = None
+                for blob in blobs:
+                    if blob.name.endswith('.mp4'):
+                        output_blob = blob
+                        break
+                
+                if output_blob is None:
+                    raise TranscoderError("Aucun fichier MP4 trouvé dans le dossier de sortie")
+                
+                # Télécharger le fichier
+                output_blob.download_to_filename(output_file_path)
                 return True
             
             if status == transcoder.Job.ProcessingState.FAILED:
